@@ -4,9 +4,14 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
-        "dev": "vite"
+        "dev": "vite",
+        "console:build": "npm --prefix resources/console run build",
+        "console:dev": "npm --prefix resources/console run dev",
+        "e2e": "playwright test",
+        "e2e:ui": "playwright test --ui"
     },
     "devDependencies": {
+        "@playwright/test": "^1.50.0",
         "@tailwindcss/vite": "^4.0.0",
         "concurrently": "^9.0.1",
         "laravel-vite-plugin": "^3.1",

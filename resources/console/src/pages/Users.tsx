@@ -222,7 +222,7 @@ function CreateUserModal({ onClose, onCreated }: { onClose: () => void; onCreate
     setBusy(true)
     try {
       // Host app route (not the Admin API): creates an App\Models\User.
-      await apiPost('/console/users', form)
+      await apiPost('/api/console/users', form)
       toast.success('User created.')
       onCreated()
       onClose()

@@ -38,7 +38,7 @@ Route::middleware('auth')->group(function () {
     // Create a local user. The IAM Admin API does NOT create users (users come from the app's own
     // auth); the console owns user creation, then grants are assigned via the Admin API policy wizard.
     // Requires the operator to be permitted to manage users (PDP), mirroring the Admin API surface.
-    Route::post('/console/users', function (Request $request) {
+    Route::post('/api/console/users', function (Request $request) {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
