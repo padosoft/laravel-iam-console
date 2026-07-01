@@ -1,0 +1,65 @@
+@import "tailwindcss";
+
+/*
+ * IAM Console design tokens. Dark, enterprise, teal accent (#0d9488).
+ * Tailwind v4 reads @theme tokens and generates matching utilities
+ * (bg-surface, text-muted, border-line, text-accent, ...).
+ */
+@theme {
+  --color-canvas: #0b0f14;
+  --color-surface: #111820;
+  --color-surface-2: #161f2a;
+  --color-line: #1f2b38;
+  --color-line-strong: #2b3a4b;
+  --color-ink: #e6edf3;
+  --color-muted: #93a4b3;
+  --color-faint: #64748b;
+
+  --color-accent: #0d9488;
+  --color-accent-2: #14b8a6;
+  --color-accent-soft: rgba(13, 148, 136, 0.14);
+
+  --color-ok: #22c55e;
+  --color-warn: #f59e0b;
+  --color-danger: #ef4444;
+  --color-info: #38bdf8;
+
+  --font-sans: system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Focus visibility for keyboard users across interactive elements. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-accent-2);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Thin, unobtrusive scrollbars on the dark canvas. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line-strong) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--color-line-strong);
+  border-radius: 8px;
+}

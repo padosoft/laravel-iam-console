@@ -35,6 +35,10 @@ class FortifyServiceProvider extends ServiceProvider
         Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
         Fortify::redirectUserForTwoFactorAuthenticationUsing(RedirectIfTwoFactorAuthenticatable::class);
 
+        // Login screen for the admin console (Blade). After login Fortify redirects to `home`
+        // (config/fortify.php → /console) where the React SPA takes over.
+        Fortify::loginView(fn () => view('auth.login'));
+
         RateLimiter::for('login', function (Request $request) {
             $throttleKey = Str::transliterate(Str::lower($request->input(Fortify::username())).'|'.$request->ip());
 

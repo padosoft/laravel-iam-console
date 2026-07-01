@@ -73,7 +73,7 @@ return [
     |
     */
 
-    'home' => '/home',
+    'home' => '/console',
 
     /*
     |--------------------------------------------------------------------------
@@ -144,7 +144,9 @@ return [
     */
 
     'features' => [
-        Features::registration(),
+        // Public self-registration is DISABLED on the IAM control plane: accounts are created only by a
+        // super-admin (console → Users → Create user). Do not re-enable Features::registration() here.
+        // Features::registration(),
         Features::resetPasswords(),
         // Features::emailVerification(),
         Features::updateProfileInformation(),

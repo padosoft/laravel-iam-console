@@ -1,58 +1,167 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
-
 <p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
+  <img src="art/banner.png" alt="Laravel IAM" width="100%">
 </p>
 
-## About Laravel
+<h1 align="center">Laravel IAM — Console</h1>
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+<p align="center">
+  <strong>Your own Identity &amp; Authorization control plane, deployable in minutes.</strong><br>
+  One Laravel 13 app that installs the entire Laravel IAM ecosystem and ships a web admin console to
+  manage users, roles &amp; grants, sessions, audit, access reviews, AI anomaly recommendations and apps.
+</p>
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+<p align="center">
+  <a href="https://github.com/padosoft/laravel-iam-console/actions"><img src="https://img.shields.io/github/actions/workflow/status/padosoft/laravel-iam-console/tests.yml?branch=main&style=flat-square&label=tests" alt="Tests"></a>
+  <img src="https://img.shields.io/badge/Laravel-13.x-FF2D20?style=flat-square" alt="Laravel 13">
+  <img src="https://img.shields.io/badge/PHP-8.3%2B-777BB4?style=flat-square" alt="PHP 8.3+">
+  <img src="https://img.shields.io/badge/React-19-61DAFB?style=flat-square" alt="React 19">
+  <img src="https://img.shields.io/badge/deploy-Laravel%20Cloud-6875F5?style=flat-square" alt="Laravel Cloud">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" alt="License"></a>
+</p>
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+<p align="center">
+  📚 <b><a href="https://doc.laravel-iam-server.padosoft.com">Full documentation</a></b> &nbsp;·&nbsp;
+  🚀 <a href="https://doc.laravel-iam-server.padosoft.com/tutorial">Zero-to-working tutorial</a>
+</p>
 
-## Learning Laravel
+---
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## What this is
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+`laravel-iam-console` is the **deployable host application** for [Laravel IAM](https://github.com/padosoft).
+Instead of wiring a dozen packages by hand, you clone this app, point it at a database, deploy it (e.g. on
+**Laravel Cloud**), seed a super-admin — and you have a running **Identity &amp; Authorization server** with a
+web console. Your other apps then install [`padosoft/laravel-iam-client`](https://github.com/padosoft/laravel-iam-client)
+and ask it for authorization decisions.
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+It bundles the **whole ecosystem in one app**:
 
-## Agentic Development
+| Package | Role | Docs |
+| --- | --- | --- |
+| [laravel-iam-server](https://packagist.org/packages/padosoft/laravel-iam-server) | Identity, PDP (RBAC+ABAC+ReBAC), OAuth/OIDC, tamper-evident audit, governance, **Admin API** | [doc →](https://doc.laravel-iam-server.padosoft.com) |
+| [laravel-iam-client](https://packagist.org/packages/padosoft/laravel-iam-client) | `iam.auth` / `iam.can` middleware + Gate adapter | [doc →](https://doc.laravel-iam-client.padosoft.com) |
+| [laravel-iam-ai](https://packagist.org/packages/padosoft/laravel-iam-ai) | Advisory-only AI governance (redaction + hallucination-guard) | [doc →](https://doc.laravel-iam-ai.padosoft.com) |
+| [laravel-iam-directory](https://packagist.org/packages/padosoft/laravel-iam-directory) | LDAP/AD login + JIT provisioning | [doc →](https://doc.laravel-iam-directory.padosoft.com) |
+| [laravel-iam-bridge-spatie-permission](https://packagist.org/packages/padosoft/laravel-iam-bridge-spatie-permission) | Migration bridge from spatie/laravel-permission | [doc →](https://doc.laravel-iam-bridge-spatie-permission.padosoft.com) |
+| [laravel-iam-contracts](https://packagist.org/packages/padosoft/laravel-iam-contracts) | Shared interfaces &amp; DTOs (dependency root) | [doc →](https://doc.laravel-iam-contracts.padosoft.com) |
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+The polyglot client SDKs — [node](https://www.npmjs.com/package/@padosoft/laravel-iam-node),
+[react-native](https://www.npmjs.com/package/@padosoft/laravel-iam-react-native),
+[rust](https://crates.io/crates/laravel-iam) — connect to the server this app runs.
+
+## Why it's different
+
+- **One deploy, whole control plane.** Server + client + AI + directory + Spatie bridge, booted and migrated
+  together. No glue code.
+- **Fail-closed by design.** Every decision is the PDP's; every Admin API route is gated by a permission and
+  denies on any uncertainty.
+- **Session-authenticated console.** The React admin panel talks to the Admin API using your Fortify login
+  session — no tokens to juggle in the browser. Authorization is still the PDP's call, per route.
+- **Runs on a database and nothing else.** No Redis, no S3 required: sessions/cache/queue on the database,
+  ES256 signing keys generated and stored locally. Add Redis/KMS only at scale.
+- **Tamper-evident audit** and **AI anomaly recommendations** built in — not bolt-ons.
+
+## The console
+
+<p align="center"><img src="art/screenshots/Dashboard-Dark.png" alt="Dashboard" width="100%"></p>
+
+<table>
+<tr>
+<td width="50%"><img src="art/screenshots/Users-grants.png" alt="Users and grants"><br><em>Users &amp; grants — assign roles/permissions</em></td>
+<td width="50%"><img src="art/screenshots/Session-e-token.png" alt="Sessions"><br><em>Sessions &amp; tokens — revoke live</em></td>
+</tr>
+<tr>
+<td><img src="art/screenshots/Audit.png" alt="Audit log"><br><em>Tamper-evident audit log</em></td>
+<td><img src="art/screenshots/Anomalies.png" alt="AI anomalies"><br><em>AI anomaly &amp; least-privilege recommendations</em></td>
+</tr>
+<tr>
+<td><img src="art/screenshots/Access-reviews.png" alt="Access reviews"><br><em>Access review campaigns</em></td>
+<td><img src="art/screenshots/Policy-Playground.png" alt="Decision playground"><br><em>Decision playground — check/explain</em></td>
+</tr>
+</table>
+
+## Quick start (local)
 
 ```bash
-composer require laravel/boost --dev
+git clone https://github.com/padosoft/laravel-iam-console
+cd laravel-iam-console
 
-php artisan boost:install
+cp .env.example .env
+composer install
+php artisan key:generate
+php artisan migrate            # full iam_* schema (SQLite by default)
+php artisan db:seed            # creates the first super-admin (see IAM_SUPERADMIN_* in .env)
+
+# Build the console UI (or `npm run dev` for hot reload)
+npm --prefix resources/console install
+npm --prefix resources/console run build
+
+php artisan serve
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Open **<http://localhost:8000>**, sign in with the seeded super-admin
+(`admin@example.com` / `password` by default — change it!), and you're managing IAM.
 
-## Contributing
+## Deploy from zero on Laravel Cloud
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+You need only **an app + a database**. No Redis, no object storage.
 
-## Code of Conduct
+1. **Push this repo to GitHub** (your fork/copy).
+2. **Create a Laravel Cloud project** and connect the repo.
+3. **Add a database** (Postgres or MySQL). Laravel Cloud injects the `DB_*` env.
+4. **Set environment variables** (Project → Environment):
+   ```dotenv
+   APP_URL=https://your-iam.example.com
+   IAM_ISSUER=https://your-iam.example.com
+   IAM_KMS_DRIVER=local
+   SESSION_DRIVER=database
+   CACHE_STORE=database
+   QUEUE_CONNECTION=database
+   IAM_SUPERADMIN_EMAIL=you@example.com
+   IAM_SUPERADMIN_PASSWORD=a-strong-password
+   ```
+5. **Build command** — build the SPA and run migrations/seed on deploy:
+   ```bash
+   composer install --no-dev --optimize-autoloader
+   npm --prefix resources/console ci && npm --prefix resources/console run build
+   php artisan migrate --force
+   php artisan db:seed --class=SuperAdminSeeder --force
+   ```
+6. **Enable the scheduler** (Laravel Cloud toggle) — drives async audit checkpoints, webhook delivery and
+   access-review reminders. That's the only background piece, and it needs no Redis.
+7. **Deploy.** Visit your URL, sign in as the super-admin, and register your first application + users.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Then, in each **consuming app**, `composer require padosoft/laravel-iam-client`, point it at this server, and
+protect routes with `iam.auth` / `iam.can`. The full walkthrough — creating this server, users, an app and
+connecting a client — is the [zero-to-working tutorial](https://doc.laravel-iam-server.padosoft.com/tutorial).
 
-## Security Vulnerabilities
+## Creating the first super-admin
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+There is no wildcard permission in the PDP, so a **super-admin is a user granted every `iam:*` permission**.
+`SuperAdminSeeder` does exactly that (idempotent). Credentials come from env:
+
+```dotenv
+IAM_SUPERADMIN_NAME="Super Admin"
+IAM_SUPERADMIN_EMAIL=admin@example.com
+IAM_SUPERADMIN_PASSWORD=change-me-now
+```
+
+```bash
+php artisan db:seed --class=SuperAdminSeeder
+```
+
+From there the super-admin creates other users (in the console) and grants them scoped roles/permissions.
+
+## Architecture notes
+
+- **Login backend:** [Laravel Fortify](https://laravel.com/docs/fortify) (username/password). Passkeys
+  (`laravel/passkeys`) are deferred until `web-auth/webauthn-lib` supports Symfony 8 (Laravel 13).
+- **Session-authenticated Admin API:** the server's Bearer auto-registration is disabled and the Admin API is
+  re-served under the `web` group; `App\Iam\SessionAdminActorResolver` resolves the actor from the Fortify
+  session. See [`CLAUDE.md`](CLAUDE.md).
+- **Console SPA:** React 19 + Vite + Tailwind in `resources/console`, built into `public/console`, talking
+  only to the real Admin API.
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+MIT © [Padosoft](https://www.padosoft.com). Part of the [Laravel IAM](https://github.com/padosoft) ecosystem.
