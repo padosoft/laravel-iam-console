@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "4fd015a80984476374615d1174b597ca",
+    "content-hash": "42428b267139737216e720a0e92a517d",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -3006,16 +3006,16 @@
         },
         {
             "name": "padosoft/laravel-iam-ai",
-            "version": "v1.1.0",
+            "version": "v1.2.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/padosoft/laravel-iam-ai.git",
-                "reference": "ab5f667bb36657f461f24cbbccdad57981ea4eec"
+                "reference": "1a478aad82245de695f04252ba3a8e82623fe962"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/padosoft/laravel-iam-ai/zipball/ab5f667bb36657f461f24cbbccdad57981ea4eec",
-                "reference": "ab5f667bb36657f461f24cbbccdad57981ea4eec",
+                "url": "https://api.github.com/repos/padosoft/laravel-iam-ai/zipball/1a478aad82245de695f04252ba3a8e82623fe962",
+                "reference": "1a478aad82245de695f04252ba3a8e82623fe962",
                 "shasum": ""
             },
             "require": {
@@ -3058,9 +3058,9 @@
             "description": "Modulo opzionale AI di Laravel IAM: governance (redaction + hallucination-guard + audit) advisory-only su un transport sovrano. Default Regolo (UE) / Ollama (on-prem), MAI OpenAI di default.",
             "support": {
                 "issues": "https://github.com/padosoft/laravel-iam-ai/issues",
-                "source": "https://github.com/padosoft/laravel-iam-ai/tree/v1.1.0"
+                "source": "https://github.com/padosoft/laravel-iam-ai/tree/v1.2.0"
             },
-            "time": "2026-06-29T13:00:24+00:00"
+            "time": "2026-07-01T16:19:34+00:00"
         },
         {
             "name": "padosoft/laravel-iam-bridge-spatie-permission",
@@ -3276,16 +3276,16 @@
         },
         {
             "name": "padosoft/laravel-iam-server",
-            "version": "v1.3.0",
+            "version": "v1.4.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/padosoft/laravel-iam-server.git",
-                "reference": "ee57901c0ed92bfdc683106c00cb50d735f6677b"
+                "reference": "41a3dd271e56033cf2fc41beb402b0633b504b35"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/padosoft/laravel-iam-server/zipball/ee57901c0ed92bfdc683106c00cb50d735f6677b",
-                "reference": "ee57901c0ed92bfdc683106c00cb50d735f6677b",
+                "url": "https://api.github.com/repos/padosoft/laravel-iam-server/zipball/41a3dd271e56033cf2fc41beb402b0633b504b35",
+                "reference": "41a3dd271e56033cf2fc41beb402b0633b504b35",
                 "shasum": ""
             },
             "require": {
@@ -3336,9 +3336,9 @@
             "description": "Server Laravel IAM: identity, organizations, Application Registry + manifest, PDP (RBAC+ABAC+ReBAC), OAuth (league/oauth2-server) + OIDC layer, audit tamper-evident, governance/IGA, Admin API + panel.",
             "support": {
                 "issues": "https://github.com/padosoft/laravel-iam-server/issues",
-                "source": "https://github.com/padosoft/laravel-iam-server/tree/v1.3.0"
+                "source": "https://github.com/padosoft/laravel-iam-server/tree/v1.4.0"
             },
-            "time": "2026-06-30T03:14:19+00:00"
+            "time": "2026-07-01T16:50:22+00:00"
         },
         {
             "name": "paragonie/constant_time_encoding",
