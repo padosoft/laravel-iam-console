@@ -1,10 +1,12 @@
 <?php
 
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+// Landing → the console (Fortify redirects unauthenticated users to /login).
+Route::get('/', fn () => redirect('/console'));
 
 /*
 |--------------------------------------------------------------------------
@@ -26,3 +28,43 @@ Route::get('/', function () {
 Route::prefix(config('iam.admin.route_prefix', 'api/iam/v1'))
     ->middleware(['auth', 'iam.admin_auth', 'iam.idempotency'])
     ->group(base_path('vendor/padosoft/laravel-iam-server/routes/admin.php'));
+
+/*
+|--------------------------------------------------------------------------
+| Console app endpoints (session-authed, not part of the IAM Admin API)
+|--------------------------------------------------------------------------
+*/
+Route::middleware('auth')->group(function () {
+    // Create a local user. The IAM Admin API does NOT create users (users come from the app's own
+    // auth); the console owns user creation, then grants are assigned via the Admin API policy wizard.
+    // Requires the operator to be permitted to manage users (PDP), mirroring the Admin API surface.
+    Route::post('/console/users', function (Request $request) {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'password' => ['required', 'string', 'min:8'],
+        ]);
+
+        $actor = ['type' => 'user', 'id' => (string) $request->user()->getAuthIdentifier()];
+        $decision = app(\Padosoft\Iam\Contracts\Authorization\AuthorizationEngine::class)
+            ->check(['subject' => $actor, 'permission' => 'iam:users.manage']);
+        abort_unless(($decision['allowed'] ?? false) === true, 403, 'iam:users.manage denied');
+
+        $user = User::query()->create([
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'password' => Hash::make($data['password']),
+        ]);
+
+        return response()->json(['data' => ['id' => (string) $user->getKey(), 'name' => $user->name, 'email' => $user->email]], 201);
+    });
+
+    // Serve the built React SPA for every /console route (client-side routing). `npm run build`
+    // (in resources/console) emits public/console/index.html + assets.
+    Route::get('/console/{any?}', function () {
+        $index = public_path('console/index.html');
+        abort_unless(is_file($index), 503, 'Console UI not built. Run: npm --prefix resources/console run build');
+
+        return response()->file($index);
+    })->where('any', '.*');
+});
