@@ -48,7 +48,9 @@ jobs:
         with:
           node-version: 20
       - name: Install & build SPA
+        # `npm install` (not `npm ci`): the committed lockfile is generated on Windows and omits
+        # Linux-only optional deps (@emnapi/*), a known npm cross-OS gap that breaks `npm ci`.
         run: |
-          npm --prefix resources/console ci
+          npm --prefix resources/console install --no-audit --no-fund
           npm --prefix resources/console run lint
           npm --prefix resources/console run build

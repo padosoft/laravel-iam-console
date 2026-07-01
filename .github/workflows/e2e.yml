@@ -18,6 +18,10 @@ jobs:
     if: >-
       github.event_name == 'workflow_dispatch' ||
       contains(github.event.pull_request.labels.*.name, 'testE2E')
+    env:
+      # The seeder AND Playwright must agree on the super-admin password (Copilot P1).
+      IAM_SUPERADMIN_EMAIL: admin@example.com
+      IAM_SUPERADMIN_PASSWORD: e2e-super-admin-pw
     steps:
       - uses: actions/checkout@v4
 
@@ -44,12 +48,12 @@ jobs:
 
       - name: Build the console SPA
         run: |
-          npm --prefix resources/console ci
+          npm --prefix resources/console install --no-audit --no-fund
           npm --prefix resources/console run build
 
       - name: Install Playwright + browsers
         run: |
-          npm ci
+          npm install --no-audit --no-fund
           npx playwright install --with-deps chromium
 
       - name: Run E2E (golden path)

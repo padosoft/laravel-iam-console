@@ -195,13 +195,22 @@ function UserDetail({ user, onClose, onChanged }: { user: Row; onClose: () => vo
 // The effective-permissions payload shape isn't strictly documented; accept an
 // array of strings, an array of objects, or a { data } list and normalize.
 function normalizePermissions(payload: unknown): Array<{ key: string; effect?: string }> {
-  const arr = Array.isArray(payload)
-    ? payload
-    : payload && typeof payload === 'object' && Array.isArray((payload as Row).data)
-      ? ((payload as Row).data as unknown[])
-      : payload && typeof payload === 'object' && Array.isArray((payload as Row).permissions)
-        ? ((payload as Row).permissions as unknown[])
-        : []
+  // The Admin API returns { user_id, permissions: { "<key>": { via, grant_id } } } — an OBJECT MAP,
+  // not an array. Unwrap to the map (tolerating { data } / bare arrays for forward-compat), then flatten.
+  const container =
+    payload && typeof payload === 'object' && !Array.isArray(payload)
+      ? ((payload as Row).permissions ?? (payload as Row).data ?? payload)
+      : payload
+
+  // Object map: { key: { via, grant_id } } → rows keyed by the permission, labelled by how it was granted.
+  if (container && typeof container === 'object' && !Array.isArray(container)) {
+    return Object.entries(container as Record<string, unknown>).map(([key, meta]) => ({
+      key,
+      effect: meta && typeof meta === 'object' ? ((meta as Row).via as string | undefined) : undefined,
+    }))
+  }
+
+  const arr = Array.isArray(container) ? container : []
   return arr.map((p) => {
     if (typeof p === 'string') return { key: p }
     const r = p as Row

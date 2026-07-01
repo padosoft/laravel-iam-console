@@ -16,10 +16,12 @@ function severityTone(s: string): 'danger' | 'warn' | 'info' | 'neutral' {
 
 export default function Recommendations() {
   const res = useResource<unknown>(() => apiGet('recommendations/least-privilege'), [])
-  const rows: Row[] = Array.isArray(res.data)
-    ? (res.data as Row[])
-    : res.data && typeof res.data === 'object' && Array.isArray((res.data as Row).data)
-      ? ((res.data as Row).data as Row[])
+  // The endpoint returns { recommendations: [...], count } (unwrapped from { data }).
+  const data = res.data as { recommendations?: Row[] } | Row[] | null
+  const rows: Row[] = Array.isArray(data)
+    ? (data as Row[])
+    : data && Array.isArray(data.recommendations)
+      ? data.recommendations
       : []
 
   return (
