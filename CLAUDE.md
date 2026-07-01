@@ -46,5 +46,14 @@ to run your own IAM server; consuming apps separately install `padosoft/laravel-
 - E2E: `npx playwright test` (starts app + seed, logs in, clicks every screen, creates a user + assigns a
   role/permission). This is the regression guarantee — keep it green.
 
+## ⚠️ npm: always `npm install`, never `npm ci` (in CI and on the deploy platform)
+The committed lockfiles are generated on Windows and OMIT Linux-only optional deps (`@emnapi/*`, from
+Tailwind v4's `@tailwindcss/oxide` napi/wasm fallback). On a Linux runner `npm ci` fails its strict sync
+check (`Missing: @emnapi/core@… from lock file`). Use **`npm install --no-audit --no-fund`** everywhere the
+project builds on Linux — the CI workflows already do. **Laravel Cloud:** the deploy Build Command is set in
+the dashboard (the repo README can't change it) — it MUST use
+`npm --prefix resources/console install --no-audit --no-fund && npm --prefix resources/console run build`,
+not `npm ci`.
+
 ## Ecosystem docs
 Full documentation: https://doc.laravel-iam-server.padosoft.com (and each package's `doc.<pkg>.padosoft.com`).
