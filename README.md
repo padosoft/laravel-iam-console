@@ -218,7 +218,7 @@ You need only **an app + a database**. No Redis, no object storage.
 5. **Set the deploy/build command** — build the console UI, migrate, and seed the super-admin:
    ```bash
    composer install --no-dev --optimize-autoloader
-   npm --prefix resources/console ci && npm --prefix resources/console run build
+   npm --prefix resources/console install --no-audit --no-fund && npm --prefix resources/console run build
    php artisan migrate --force
    php artisan db:seed --class=SuperAdminSeeder --force
    ```
