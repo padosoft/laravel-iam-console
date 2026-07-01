@@ -3,7 +3,7 @@ import { apiGet, apiPost, errorMessage } from '../lib/api'
 import { useCursorList } from '../hooks/useApi'
 import { asText, cx, formatDate, initials, pick } from '../lib/format'
 import PageHeader from '../components/PageHeader'
-import { useToast } from '../components/Toast'
+import { useToast } from '../components/toast-context'
 import {
   Badge, Button, Card, EmptyState, ErrorState, Field, Input, KeyValues,
   Loading, Modal, Spinner, Table, Td, Th,

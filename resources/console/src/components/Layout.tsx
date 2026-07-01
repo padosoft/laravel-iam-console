@@ -6,7 +6,7 @@ import { apiPost, errorMessage } from '../lib/api'
 import { cx, initials } from '../lib/format'
 import { useCurrentUser } from '../hooks/useCurrentUser'
 import { Button } from './ui'
-import { useToast } from './Toast'
+import { useToast } from './toast-context'
 
 interface NavItem {
   to: string

@@ -1,26 +1,13 @@
-// Lightweight toast system: a provider + `useToast()` for action feedback.
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
+// Toast provider + viewport. The context and `useToast` hook live in
+// ./toast-context so this module only exports a component (keeps Fast Refresh happy).
+import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import { cx } from '../lib/format'
+import { ToastContext, type ToastApi, type ToastTone } from './toast-context'
 
-type ToastTone = 'success' | 'error' | 'info'
 interface Toast {
   id: number
   tone: ToastTone
   message: string
-}
-
-interface ToastApi {
-  success: (message: string) => void
-  error: (message: string) => void
-  info: (message: string) => void
-}
-
-const ToastContext = createContext<ToastApi | null>(null)
-
-export function useToast(): ToastApi {
-  const ctx = useContext(ToastContext)
-  if (!ctx) throw new Error('useToast must be used within <ToastProvider>')
-  return ctx
 }
 
 const toneClasses: Record<ToastTone, string> = {
