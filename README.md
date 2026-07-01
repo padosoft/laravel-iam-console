@@ -276,6 +276,8 @@ for the CI/ship workflow (local-green → PR → Copilot → `testE2E` label →
 | `IAM_ADMIN_AUDIENCE` | *(empty)* | Only needed if you also expose the Admin API to Bearer-token clients. |
 | `IAM_SUPERADMIN_NAME` / `_EMAIL` / `_PASSWORD` | `Super Admin` / `admin@example.com` / `password` | The first super-admin created by the seeder. **Change before deploying.** |
 | `SESSION_DRIVER` / `CACHE_STORE` / `QUEUE_CONNECTION` | `database` | No Redis required. |
+| `IAM_AI_ENABLED` / `IAM_AI_PROVIDER` | `false` / `disabled` | Advisory-only AI. Real sovereign transports **`regolo`** (EU) and **`ollama`** (on-prem) ship in laravel-iam-ai; set `IAM_AI_BASE_URL` (+ `IAM_AI_API_KEY` for Regolo) to enable. Fail-safe otherwise. |
+| `IAM_TRACER` | `null` | Observability: `null` \| `log` \| `otlp` (native OpenTelemetry push to `IAM_OTEL_ENDPOINT`) \| `stack` (both). |
 
 ## The ecosystem
 
