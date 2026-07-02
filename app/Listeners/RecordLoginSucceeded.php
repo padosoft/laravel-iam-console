@@ -17,16 +17,20 @@ class RecordLoginSucceeded
 
     public function handle(Login $event): void
     {
-        if (! $event->user instanceof User) {
+        // Only explicit sign-ins (POST /login), not remember-me recaller re-auth that fires Login on
+        // ordinary requests — otherwise the metric's login count would include cookie-restored sessions.
+        if (! $event->user instanceof User || request()->path() !== 'login') {
             return;
         }
 
         try {
+            $id = (string) $event->user->getAuthIdentifier();
             $this->audit->record([
                 'stream' => 'auth',
                 'event_type' => 'auth.login.succeeded',
                 'target_type' => 'user',
-                'target_id' => (string) $event->user->getAuthIdentifier(),
+                'target_id' => $id,
+                'actor_user_id' => $id, // the actor of a login IS the user (populates the audit Actor column)
             ]);
         } catch (\Throwable $e) {
             report($e);

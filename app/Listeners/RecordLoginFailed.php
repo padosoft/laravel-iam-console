@@ -16,6 +16,11 @@ class RecordLoginFailed
 
     public function handle(Failed $event): void
     {
+        // Only the console web guard; ignore failures on any other guard.
+        if ($event->guard !== null && $event->guard !== 'web') {
+            return;
+        }
+
         try {
             $this->audit->record([
                 'stream' => 'auth',
