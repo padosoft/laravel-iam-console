@@ -25,21 +25,28 @@ export default function UserSelect({
 }) {
   const users = useResource(() => apiGetPage<Row>('users', { limit: 100 }), [])
   const items = users.data?.items ?? []
+  const ids = items.map((u) => String(pick(u, ['id', 'user_id', 'uuid']) ?? ''))
 
   return (
-    <Select id={id} aria-label={ariaLabel} value={value} onChange={(e) => onChange(e.target.value)}>
-      <option value="">{users.loading ? 'Loading users…' : 'Select a user…'}</option>
-      {items.map((u) => {
-        const uid = String(pick(u, ['id', 'user_id', 'uuid']) ?? '')
-        const name = asText(pick(u, ['name', 'display_name']))
-        const email = asText(pick(u, ['email']))
-        const label = [name !== '—' ? name : null, email !== '—' ? email : null].filter(Boolean).join(' · ') || uid
-        return (
-          <option key={uid} value={uid}>
-            {label}
-          </option>
-        )
-      })}
-    </Select>
+    <>
+      <Select id={id} aria-label={ariaLabel} value={value} onChange={(e) => onChange(e.target.value)}>
+        <option value="">{users.loading ? 'Loading users…' : 'Select a user…'}</option>
+        {/* Keep a selected id visible even if it's outside the loaded page, so the control never shows
+            "none selected" while the form still holds an id. */}
+        {value !== '' && !ids.includes(value) && <option value={value}>{value}</option>}
+        {items.map((u) => {
+          const uid = String(pick(u, ['id', 'user_id', 'uuid']) ?? '')
+          const name = asText(pick(u, ['name', 'display_name']))
+          const email = asText(pick(u, ['email']))
+          const label = [name !== '—' ? name : null, email !== '—' ? email : null].filter(Boolean).join(' · ') || uid
+          return (
+            <option key={uid} value={uid}>
+              {label}
+            </option>
+          )
+        })}
+      </Select>
+      {users.data?.nextCursor && <span className="mt-1 block text-xs text-faint">Showing the first 100 users.</span>}
+    </>
   )
 }

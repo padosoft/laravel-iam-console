@@ -60,4 +60,18 @@ class ConsoleTest extends TestCase
             'login should open an iam_sessions row for the operator',
         );
     }
+
+    public function test_logout_revokes_the_operator_iam_session(): void
+    {
+        $this->seed(SuperAdminSeeder::class);
+        $user = User::where('email', 'admin@example.com')->firstOrFail();
+
+        $this->post('/login', ['email' => 'admin@example.com', 'password' => 'password']);
+        $session = IamSession::query()->where('user_id', $user->getKey())->firstOrFail();
+        $this->assertNull($session->revoked_at);
+
+        $this->post('/logout');
+
+        $this->assertNotNull($session->fresh()->revoked_at, 'logout should revoke the operator iam session');
+    }
 }

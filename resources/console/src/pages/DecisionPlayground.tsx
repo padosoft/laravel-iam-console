@@ -66,7 +66,7 @@ export default function DecisionPlayground() {
           <div className="space-y-4 p-5">
             <div className="grid grid-cols-3 gap-4">
               <Field label="Subject type">
-                <Select value={form.subjectType} onChange={(e) => setForm({ ...form, subjectType: e.target.value })}>
+                <Select value={form.subjectType} onChange={(e) => setForm({ ...form, subjectType: e.target.value, subjectId: '' })}>
                   <option value="user">user</option>
                   <option value="group">group</option>
                   <option value="service">service</option>

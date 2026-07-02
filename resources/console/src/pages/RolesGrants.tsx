@@ -22,7 +22,7 @@ function buildBody(form: GrantForm) {
     subject: { type: 'user', id: form.subjectId },
     privilege_type: form.privilegeType,
     privilege_key: form.privilegeKey,
-    application_key: null,
+    application: null,
     effect: form.effect,
   }
 }
