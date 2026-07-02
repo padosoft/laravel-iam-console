@@ -9,6 +9,7 @@ use App\Actions\Fortify\UpdateUserProfileInformation;
 use App\Listeners\EndIamSession;
 use App\Listeners\RecordLoginFailed;
 use App\Listeners\RecordLoginSucceeded;
+use App\Listeners\RecordStepUpFailed;
 use App\Listeners\StartIamSession;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Login;
@@ -20,6 +21,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Laravel\Fortify\Actions\RedirectIfTwoFactorAuthenticatable;
+use Laravel\Fortify\Events\TwoFactorAuthenticationFailed;
 use Laravel\Fortify\Fortify;
 
 class FortifyServiceProvider extends ServiceProvider
@@ -51,6 +53,7 @@ class FortifyServiceProvider extends ServiceProvider
         // Audit login activity so GET /metrics/users can surface it on the Dashboard.
         Event::listen(Login::class, RecordLoginSucceeded::class);
         Event::listen(Failed::class, RecordLoginFailed::class);
+        Event::listen(TwoFactorAuthenticationFailed::class, RecordStepUpFailed::class);
 
         // Login screen for the admin console (Blade). After login Fortify redirects to `home`
         // (config/fortify.php → /console) where the React SPA takes over.

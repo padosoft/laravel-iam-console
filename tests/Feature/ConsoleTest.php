@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\User;
 use Database\Seeders\SuperAdminSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Fortify\Events\TwoFactorAuthenticationFailed;
 use Padosoft\Iam\Contracts\Authorization\AuthorizationEngine;
 use Padosoft\Iam\Domain\Audit\Models\AuditEvent;
 use Padosoft\Iam\Domain\Identity\Models\Session as IamSession;
@@ -91,6 +92,19 @@ class ConsoleTest extends TestCase
         $this->assertTrue(
             AuditEvent::query()->where('event_type', 'auth.login.succeeded')->exists(),
             'a successful login should emit auth.login.succeeded',
+        );
+    }
+
+    public function test_step_up_failure_is_audited_for_the_users_metric(): void
+    {
+        $user = User::factory()->create();
+
+        // Fortify fires this on a rejected 2FA challenge code; feeds metrics/users' step_up_failed.
+        event(new TwoFactorAuthenticationFailed($user));
+
+        $this->assertTrue(
+            AuditEvent::query()->where('event_type', 'auth.stepup.failed')->exists(),
+            'a rejected 2FA code should emit auth.stepup.failed',
         );
     }
 }
