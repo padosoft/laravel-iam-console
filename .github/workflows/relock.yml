@@ -1,0 +1,41 @@
+name: relock-console
+
+# Regenerates resources/console/package-lock.json ON LINUX and commits it, so it includes the
+# Linux-only optional dep nodes (@emnapi/*, from Tailwind v4's oxide wasm fallback) that a
+# Windows-generated lockfile omits. With a Linux-complete lockfile, `npm ci` succeeds on Linux
+# runners AND on the Laravel Cloud deploy (both Linux) — no need to switch the build command.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  relock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Regenerate the console lockfile on Linux
+        run: npm --prefix resources/console install --no-audit --no-fund
+
+      - name: Verify npm ci now works on Linux
+        run: npm --prefix resources/console ci --no-audit --no-fund
+
+      - name: Commit the Linux-complete lockfile if it changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- resources/console/package-lock.json; then
+            echo "Lockfile already Linux-complete — nothing to commit."
+          else
+            git add resources/console/package-lock.json
+            git commit -m "chore: regenerate console lockfile on Linux so npm ci works on deploy
+
+            Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
+            git push
+          fi
