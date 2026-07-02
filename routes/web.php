@@ -4,6 +4,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
+use Padosoft\Iam\Contracts\Authorization\AuthorizationEngine;
 
 // Landing → the console (Fortify redirects unauthenticated users to /login).
 Route::get('/', fn () => redirect('/console'));
@@ -41,12 +42,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/api/console/users', function (Request $request) {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'email' => ['required', 'email', 'max:255', 'unique:iam_users,email'],
             'password' => ['required', 'string', 'min:8'],
         ]);
 
         $actor = ['type' => 'user', 'id' => (string) $request->user()->getAuthIdentifier()];
-        $decision = app(\Padosoft\Iam\Contracts\Authorization\AuthorizationEngine::class)
+        $decision = app(AuthorizationEngine::class)
             ->check(['subject' => $actor, 'permission' => 'iam:users.manage']);
         abort_unless(($decision['allowed'] ?? false) === true, 403, 'iam:users.manage denied');
 
