@@ -48,10 +48,11 @@ class ConsoleTest extends TestCase
 
     public function test_login_starts_an_iam_session_for_the_operator(): void
     {
-        $this->seed(SuperAdminSeeder::class);
-        $user = User::where('email', 'admin@example.com')->firstOrFail();
+        // Use a factory user (password 'password') so the test does not depend on the env-driven
+        // super-admin password (IAM_SUPERADMIN_PASSWORD, e.g. from .env.example on CI).
+        $user = User::factory()->create();
 
-        $this->post('/login', ['email' => 'admin@example.com', 'password' => 'password'])
+        $this->post('/login', ['email' => $user->email, 'password' => 'password'])
             ->assertRedirect('/console');
 
         // The Login listener opened a server-side IAM session for the operator (Sessions screen source).
@@ -63,10 +64,9 @@ class ConsoleTest extends TestCase
 
     public function test_logout_revokes_the_operator_iam_session(): void
     {
-        $this->seed(SuperAdminSeeder::class);
-        $user = User::where('email', 'admin@example.com')->firstOrFail();
+        $user = User::factory()->create();
 
-        $this->post('/login', ['email' => 'admin@example.com', 'password' => 'password']);
+        $this->post('/login', ['email' => $user->email, 'password' => 'password']);
         $session = IamSession::query()->where('user_id', $user->getKey())->firstOrFail();
         $this->assertNull($session->revoked_at);
 
