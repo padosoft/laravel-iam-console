@@ -6,13 +6,14 @@ namespace App\Iam;
 
 use Illuminate\Http\Request;
 use Padosoft\Iam\Contracts\Support\SubjectRef;
-use Padosoft\Iam\Http\Admin\Support\AdminContext;
 use Padosoft\Iam\Http\Admin\Support\AdminActorResolver;
+use Padosoft\Iam\Http\Admin\Support\AdminContext;
+use Padosoft\Iam\Http\Admin\Support\TokenAdminActorResolver;
 
 /**
  * Bundled-console actor resolver.
  *
- * The default {@see \Padosoft\Iam\Http\Admin\Support\TokenAdminActorResolver} authenticates the Admin
+ * The default {@see TokenAdminActorResolver} authenticates the Admin
  * API with a Bearer access token. In this single-app console the operator is already authenticated by
  * the app's own web session (Laravel Fortify), so we resolve the Admin API actor from the logged-in
  * user instead — no token juggling. Authorization is unchanged: every Admin API route still asks the

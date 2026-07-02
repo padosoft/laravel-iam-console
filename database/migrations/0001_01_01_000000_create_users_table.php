@@ -29,7 +29,10 @@ return new class extends Migration
 
         Schema::create('sessions', function (Blueprint $table) {
             $table->string('id')->primary();
-            $table->foreignId('user_id')->nullable()->index();
+            // user_id is a ULID string, not a bigint: the auth model (App\Models\User) is keyed on the
+            // iam_users ULID (Option C, single user store). A bigint column would reject the ULID on
+            // MySQL/Postgres; keep it a string so the database session driver can store the auth id.
+            $table->string('user_id')->nullable()->index();
             $table->string('ip_address', 45)->nullable();
             $table->text('user_agent')->nullable();
             $table->longText('payload');

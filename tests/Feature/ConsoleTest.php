@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\User;
 use Database\Seeders\SuperAdminSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Padosoft\Iam\Contracts\Authorization\AuthorizationEngine;
 use Tests\TestCase;
 
 class ConsoleTest extends TestCase
@@ -32,7 +33,7 @@ class ConsoleTest extends TestCase
         $this->seed(SuperAdminSeeder::class);
 
         $user = User::where('email', 'admin@example.com')->firstOrFail();
-        $engine = app(\Padosoft\Iam\Contracts\Authorization\AuthorizationEngine::class);
+        $engine = app(AuthorizationEngine::class);
 
         foreach (['iam:users.read', 'iam:grants.manage', 'iam:sessions.read', 'iam:audit.read'] as $permission) {
             $decision = $engine->check(['subject' => ['type' => 'user', 'id' => (string) $user->getKey()], 'permission' => $permission]);
