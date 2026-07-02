@@ -59,6 +59,7 @@ function StatGrid({ title, to, metrics, loading, error }: { title: string; to?: 
 }
 
 export default function Dashboard() {
+  const users = useResource<Metrics>(() => apiGet('metrics/users'), [])
   const decisions = useResource<Metrics>(() => apiGet('metrics/decisions'), [])
   const grants = useResource<Metrics>(() => apiGet('metrics/grants'), [])
   const audit = useResource<Metrics>(() => apiGet('metrics/audit'), [])
@@ -69,6 +70,7 @@ export default function Dashboard() {
       <PageHeader title="Dashboard" description="Live decision, grant and audit metrics across the tenant." />
 
       <div className="space-y-5">
+        <StatGrid title="Users" to="/users" metrics={users.data} loading={users.loading} error={users.error} />
         <StatGrid title="Decisions" to="/playground" metrics={decisions.data} loading={decisions.loading} error={decisions.error} />
         <div className="grid gap-5 lg:grid-cols-2">
           <StatGrid title="Grants" to="/grants" metrics={grants.data} loading={grants.loading} error={grants.error} />

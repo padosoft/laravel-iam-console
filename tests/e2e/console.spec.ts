@@ -26,7 +26,11 @@ const SCREENS = [
 ]
 
 test('login → every screen → create user → assign a permission', async ({ page }) => {
-  // 1) Sign in (Fortify Blade login).
+  // 1) Sign in (Fortify Blade login). The password-reset request page is reachable from here.
+  await page.goto('/login')
+  await page.getByRole('link', { name: 'Forgot password?' }).click()
+  await expect(page.getByRole('button', { name: 'Email password reset link' })).toBeVisible()
+
   await page.goto('/login')
   await page.fill('#email', EMAIL)
   await page.fill('#password', PASSWORD)
@@ -34,6 +38,8 @@ test('login → every screen → create user → assign a permission', async ({ 
 
   // The sidebar is the proof the operator is authenticated and the SPA mounted.
   await expect(page.getByRole('link', { name: 'Users' })).toBeVisible()
+  // The Dashboard shows the user-metrics tile (GET /metrics/users).
+  await expect(page.getByRole('heading', { name: 'Users', exact: true })).toBeVisible()
 
   // 2) Click through EVERY console screen; each must become the active route.
   for (const label of SCREENS) {

@@ -7,7 +7,10 @@ use App\Actions\Fortify\ResetUserPassword;
 use App\Actions\Fortify\UpdateUserPassword;
 use App\Actions\Fortify\UpdateUserProfileInformation;
 use App\Listeners\EndIamSession;
+use App\Listeners\RecordLoginFailed;
+use App\Listeners\RecordLoginSucceeded;
 use App\Listeners\StartIamSession;
+use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -45,9 +48,28 @@ class FortifyServiceProvider extends ServiceProvider
         Event::listen(Login::class, StartIamSession::class);
         Event::listen(Logout::class, EndIamSession::class);
 
+        // Audit login activity so GET /metrics/users can surface it on the Dashboard.
+        Event::listen(Login::class, RecordLoginSucceeded::class);
+        Event::listen(Failed::class, RecordLoginFailed::class);
+
         // Login screen for the admin console (Blade). After login Fortify redirects to `home`
         // (config/fortify.php → /console) where the React SPA takes over.
         Fortify::loginView(fn () => view('auth.login'));
+
+        // Password reset (Features::resetPasswords() is enabled in config/fortify.php). The reset link is
+        // emailed via the configured MAIL_MAILER — set it to smtp (with credentials) on deploy.
+        Fortify::requestPasswordResetLinkView(fn () => view('auth.forgot-password'));
+        Fortify::resetPasswordView(fn (Request $request) => view('auth.reset-password', ['request' => $request]));
+
+        // Fortify does not throttle the reset-link request/update routes by default; cap them to blunt
+        // reset-email spam and token probing (6/min per IP). Applied once routes are registered.
+        $this->app->booted(function (): void {
+            foreach ($this->app->make('router')->getRoutes()->getRoutes() as $route) {
+                if (in_array($route->getName(), ['password.email', 'password.update'], true)) {
+                    $route->middleware('throttle:6,1');
+                }
+            }
+        });
 
         RateLimiter::for('login', function (Request $request) {
             $throttleKey = Str::transliterate(Str::lower($request->input(Fortify::username())).'|'.$request->ip());

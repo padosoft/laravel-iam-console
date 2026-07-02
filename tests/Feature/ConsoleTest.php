@@ -6,6 +6,7 @@ use App\Models\User;
 use Database\Seeders\SuperAdminSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Padosoft\Iam\Contracts\Authorization\AuthorizationEngine;
+use Padosoft\Iam\Domain\Audit\Models\AuditEvent;
 use Padosoft\Iam\Domain\Identity\Models\Session as IamSession;
 use Tests\TestCase;
 
@@ -73,5 +74,23 @@ class ConsoleTest extends TestCase
         $this->post('/logout');
 
         $this->assertNotNull($session->fresh()->revoked_at, 'logout should revoke the operator iam session');
+    }
+
+    public function test_login_activity_is_audited_for_the_users_metric(): void
+    {
+        $user = User::factory()->create();
+
+        // A failed attempt, then a successful one — both feed GET /metrics/users' login activity.
+        $this->post('/login', ['email' => $user->email, 'password' => 'wrong-password']);
+        $this->post('/login', ['email' => $user->email, 'password' => 'password']);
+
+        $this->assertTrue(
+            AuditEvent::query()->where('event_type', 'auth.login.failed')->exists(),
+            'a failed login should emit auth.login.failed',
+        );
+        $this->assertTrue(
+            AuditEvent::query()->where('event_type', 'auth.login.succeeded')->exists(),
+            'a successful login should emit auth.login.succeeded',
+        );
     }
 }
