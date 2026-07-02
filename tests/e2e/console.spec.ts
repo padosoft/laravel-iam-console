@@ -41,6 +41,10 @@ test('login → every screen → create user → assign a permission', async ({ 
     await expect(page.getByRole('link', { name: label, exact: true })).toHaveAttribute('aria-current', 'page')
   }
 
+  // 2b) The operator's own IdP session is opened at login (SessionRegistry wiring) and shows here.
+  await page.getByRole('link', { name: 'Sessions', exact: true }).click()
+  await expect(page.locator('table tbody tr').first()).toBeVisible()
+
   // 3) Create a new user.
   await page.getByRole('link', { name: 'Users', exact: true }).click()
   const email = `ada+${Date.now()}@example.com`
@@ -57,9 +61,10 @@ test('login → every screen → create user → assign a permission', async ({ 
   const userId = String(((await createResp.json()).data as { id: string }).id)
   expect(userId).toBeTruthy()
 
-  // 4) Assign a permission to that user via the policy wizard (preview → commit).
+  // 4) Assign a permission to that user via the policy wizard (preview → commit). The subject is now
+  // picked from the real user list (sourced from GET /users), so select the user we just created.
   await page.getByRole('link', { name: 'Roles & Grants', exact: true }).click()
-  await page.getByPlaceholder('usr_123 or numeric id').fill(userId)
+  await page.getByLabel('Grant subject user').selectOption(userId)
   await page.getByPlaceholder('iam:users.read').fill('reports:view')
 
   const [previewResp] = await Promise.all([

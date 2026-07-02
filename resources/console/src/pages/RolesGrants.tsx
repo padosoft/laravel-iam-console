@@ -3,6 +3,7 @@ import { apiGet, apiPost, errorMessage } from '../lib/api'
 import { useResource } from '../hooks/useApi'
 import { asText, pick } from '../lib/format'
 import PageHeader from '../components/PageHeader'
+import UserSelect from '../components/UserSelect'
 import { useToast } from '../components/toast-context'
 import { Badge, Button, Card, CardHeader, EmptyState, Field, Input, KeyValues, Select, Spinner } from '../components/ui'
 
@@ -26,18 +27,13 @@ function buildBody(form: GrantForm) {
   }
 }
 
-// The permissions catalog helps operators pick a valid key; shape is loose so
-// we extract any string-ish key we can find.
-function catalogKeys(payload: unknown): string[] {
-  const arr = Array.isArray(payload)
-    ? payload
-    : payload && typeof payload === 'object'
-      ? ((payload as Record<string, unknown>).data as unknown[]) ??
-        ((payload as Record<string, unknown>).permissions as unknown[]) ??
-        []
-      : []
-  const keys = (arr ?? []).map((p) =>
-    typeof p === 'string' ? p : asText(pick(p as Record<string, unknown>, ['key', 'permission', 'name', 'code'])),
+// The catalog endpoint returns { permissions:[{full_key,…}], roles:[{full_key,…}] }. Pull the keys for
+// one side (permissions OR roles) so the datalist suggests the right set for the chosen privilege type.
+function keysFrom(payload: unknown, field: 'permissions' | 'roles'): string[] {
+  const obj = payload && typeof payload === 'object' ? (payload as Record<string, unknown>) : {}
+  const arr = Array.isArray(obj[field]) ? (obj[field] as unknown[]) : []
+  const keys = arr.map((p) =>
+    typeof p === 'string' ? p : asText(pick(p as Record<string, unknown>, ['full_key', 'key', 'permission', 'name', 'code'])),
   )
   return Array.from(new Set(keys.filter((k) => k && k !== '—')))
 }
@@ -45,7 +41,6 @@ function catalogKeys(payload: unknown): string[] {
 export default function RolesGrants() {
   const toast = useToast()
   const catalog = useResource<unknown>(() => apiGet('policies-wizard/permissions'), [])
-  const keys = catalogKeys(catalog.data)
 
   const [form, setForm] = useState<GrantForm>({
     subjectId: '',
@@ -58,6 +53,7 @@ export default function RolesGrants() {
   const [committing, setCommitting] = useState(false)
 
   const ready = form.subjectId.trim() && form.privilegeKey.trim()
+  const keys = keysFrom(catalog.data, form.privilegeType === 'role' ? 'roles' : 'permissions')
 
   async function runPreview() {
     setPreviewing(true)
@@ -94,8 +90,12 @@ export default function RolesGrants() {
         <Card>
           <CardHeader title="Assign access" subtitle="Dry-run preview, then commit the grant." />
           <div className="space-y-4 p-5">
-            <Field label="User ID" hint="Subject the grant applies to (type: user).">
-              <Input value={form.subjectId} onChange={(e) => { setForm({ ...form, subjectId: e.target.value }); setPreview(null) }} placeholder="usr_123 or numeric id" />
+            <Field label="User" hint="Subject the grant applies to (type: user).">
+              <UserSelect
+                ariaLabel="Grant subject user"
+                value={form.subjectId}
+                onChange={(id) => { setForm({ ...form, subjectId: id }); setPreview(null) }}
+              />
             </Field>
 
             <div className="grid grid-cols-2 gap-4">

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { apiPost, errorMessage } from '../lib/api'
 import { asText } from '../lib/format'
 import PageHeader from '../components/PageHeader'
+import UserSelect from '../components/UserSelect'
 import { useToast } from '../components/toast-context'
 import { Badge, Button, Card, CardHeader, EmptyState, Field, Input, KeyValues, Select, Spinner } from '../components/ui'
 
@@ -72,8 +73,12 @@ export default function DecisionPlayground() {
                 </Select>
               </Field>
               <div className="col-span-2">
-                <Field label="Subject ID">
-                  <Input value={form.subjectId} onChange={(e) => setForm({ ...form, subjectId: e.target.value })} placeholder="usr_123" />
+                <Field label="Subject" hint={form.subjectType === 'user' ? undefined : 'id for the selected subject type'}>
+                  {form.subjectType === 'user' ? (
+                    <UserSelect ariaLabel="Decision subject user" value={form.subjectId} onChange={(id) => setForm({ ...form, subjectId: id })} />
+                  ) : (
+                    <Input value={form.subjectId} onChange={(e) => setForm({ ...form, subjectId: e.target.value })} placeholder="grp_… / svc_…" />
+                  )}
                 </Field>
               </div>
             </div>
