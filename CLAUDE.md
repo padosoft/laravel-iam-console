@@ -53,7 +53,9 @@ check (`Missing: @emnapi/core@… from lock file`). Use **`npm install --no-audi
 project builds on Linux — the CI workflows already do. **Laravel Cloud:** the deploy Build Command is set in
 the dashboard (the repo README can't change it) — it MUST use
 `npm --prefix resources/console install --no-audit --no-fund && npm --prefix resources/console run build`,
-not `npm ci`.
+not `npm ci`. The committed `resources/console/package-lock.json` is kept **Linux-complete** so `npm ci`
+also works on Linux deploys; if you ever regenerate it on Windows (which drops the `@emnapi/*` nodes), run
+the **`relock` GitHub workflow** (`gh workflow run relock.yml`) to re-generate + commit it on Linux.
 
 ## Ecosystem docs
 Full documentation: https://doc.laravel-iam-server.padosoft.com (and each package's `doc.<pkg>.padosoft.com`).
