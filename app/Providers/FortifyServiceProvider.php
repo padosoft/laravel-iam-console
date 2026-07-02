@@ -6,8 +6,13 @@ use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
 use App\Actions\Fortify\UpdateUserPassword;
 use App\Actions\Fortify\UpdateUserProfileInformation;
+use App\Listeners\EndIamSession;
+use App\Listeners\StartIamSession;
+use Illuminate\Auth\Events\Login;
+use Illuminate\Auth\Events\Logout;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
@@ -34,6 +39,11 @@ class FortifyServiceProvider extends ServiceProvider
         Fortify::updateUserPasswordsUsing(UpdateUserPassword::class);
         Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
         Fortify::redirectUserForTwoFactorAuthenticationUsing(RedirectIfTwoFactorAuthenticatable::class);
+
+        // Open a server-side IAM session (iam_sessions) when the operator logs in, so the Sessions screen
+        // shows the current session and OIDC /authorize can rely on a live IdP login; revoke it on logout.
+        Event::listen(Login::class, StartIamSession::class);
+        Event::listen(Logout::class, EndIamSession::class);
 
         // Login screen for the admin console (Blade). After login Fortify redirects to `home`
         // (config/fortify.php → /console) where the React SPA takes over.

@@ -11,11 +11,12 @@ type Row = Record<string, unknown>
 function campaignId(c: Row): string {
   return String(pick(c, ['id', 'campaign_id', 'uuid']) ?? '')
 }
-function statusTone(s: string): 'ok' | 'warn' | 'neutral' {
+function statusTone(s: string): 'ok' | 'warn' | 'neutral' | 'danger' {
   const v = s.toLowerCase()
-  if (v.includes('open') || v.includes('active')) return 'ok'
-  if (v.includes('closed') || v.includes('complete')) return 'neutral'
-  return 'warn'
+  if (v === 'running') return 'ok'
+  if (v === 'completed') return 'neutral'
+  if (v === 'cancelled' || v === 'expired') return 'danger'
+  return 'warn' // draft
 }
 
 export default function AccessReviews() {
@@ -25,12 +26,14 @@ export default function AccessReviews() {
   const [creating, setCreating] = useState(false)
   const [busy, setBusy] = useState<string | null>(null)
 
-  async function toggle(c: Row, action: 'open' | 'close') {
+  const pastTense: Record<'open' | 'close' | 'cancel', string> = { open: 'opened', close: 'closed', cancel: 'cancelled' }
+
+  async function act(c: Row, action: 'open' | 'close' | 'cancel') {
     const id = campaignId(c)
     setBusy(id + action)
     try {
       await apiPost(`access-reviews/campaigns/${encodeURIComponent(id)}/${action}`)
-      toast.success(`Campaign ${action === 'open' ? 'opened' : 'closed'}.`)
+      toast.success(`Campaign ${pastTense[action]}.`)
       list.reload()
     } catch (e) {
       toast.error(errorMessage(e))
@@ -59,7 +62,10 @@ export default function AccessReviews() {
             {list.items.map((c) => {
               const id = campaignId(c)
               const status = asText(pick(c, ['status', 'state']))
-              const isOpen = status.toLowerCase().includes('open')
+              const s = status.toLowerCase()
+              const canOpen = s === 'draft'
+              const canClose = s === 'running'
+              const canCancel = s === 'draft' || s === 'running'
               return (
                 <tr key={id} className="hover:bg-surface-2/60">
                   <Td>
@@ -73,11 +79,9 @@ export default function AccessReviews() {
                   <Td className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button variant="ghost" onClick={() => setSelected(c)}>Items</Button>
-                      {isOpen ? (
-                        <Button variant="secondary" loading={busy === id + 'close'} onClick={() => toggle(c, 'close')}>Close</Button>
-                      ) : (
-                        <Button variant="secondary" loading={busy === id + 'open'} onClick={() => toggle(c, 'open')}>Open</Button>
-                      )}
+                      {canOpen && <Button variant="secondary" loading={busy === id + 'open'} onClick={() => act(c, 'open')}>Open</Button>}
+                      {canClose && <Button variant="secondary" loading={busy === id + 'close'} onClick={() => act(c, 'close')}>Close</Button>}
+                      {canCancel && <Button variant="ghost" loading={busy === id + 'cancel'} onClick={() => act(c, 'cancel')}>Cancel</Button>}
                     </div>
                   </Td>
                 </tr>
