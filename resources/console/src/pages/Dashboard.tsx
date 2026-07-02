@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { apiGet } from '../lib/api'
 import { useResource, useCursorList } from '../hooks/useApi'
@@ -33,7 +34,7 @@ function toStats(metrics: Metrics | null, prefix = ''): Stat[] {
   return out
 }
 
-function StatGrid({ title, to, metrics, loading, error }: { title: string; to?: string; metrics: Metrics | null; loading: boolean; error: string | null }) {
+function StatGrid({ title, to, metrics, loading, error, note }: { title: string; to?: string; metrics: Metrics | null; loading: boolean; error: string | null; note?: ReactNode }) {
   const stats = toStats(metrics).slice(0, 8)
   return (
     <Card>
@@ -54,6 +55,9 @@ function StatGrid({ title, to, metrics, loading, error }: { title: string; to?: 
           ))}
         </div>
       )}
+      {!loading && !error && note && (
+        <div className="border-t border-line px-5 py-2.5 text-xs text-muted">{note}</div>
+      )}
     </Card>
   )
 }
@@ -70,7 +74,18 @@ export default function Dashboard() {
       <PageHeader title="Dashboard" description="Live decision, grant and audit metrics across the tenant." />
 
       <div className="space-y-5">
-        <StatGrid title="Users" to="/users" metrics={users.data} loading={users.loading} error={users.error} />
+        <StatGrid
+          title="Users"
+          to="/users"
+          metrics={users.data}
+          loading={users.loading}
+          error={users.error}
+          note={(() => {
+            const last = (users.data?.logins as { last_login_at?: unknown } | undefined)?.last_login_at
+            // Tenant-wide MAX across auth.login.succeeded — most recent sign-in by ANY user, not the operator's.
+            return last ? <>Most recent login: <span className="text-ink/80">{formatDate(last)}</span></> : undefined
+          })()}
+        />
         <StatGrid title="Decisions" to="/playground" metrics={decisions.data} loading={decisions.loading} error={decisions.error} />
         <div className="grid gap-5 lg:grid-cols-2">
           <StatGrid title="Grants" to="/grants" metrics={grants.data} loading={grants.loading} error={grants.error} />

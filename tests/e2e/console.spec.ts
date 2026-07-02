@@ -38,8 +38,10 @@ test('login → every screen → create user → assign a permission', async ({ 
 
   // The sidebar is the proof the operator is authenticated and the SPA mounted.
   await expect(page.getByRole('link', { name: 'Users' })).toBeVisible()
-  // The Dashboard shows the user-metrics tile (GET /metrics/users).
+  // The Dashboard shows the user-metrics tile (GET /metrics/users) with the last-login timestamp
+  // (the sign-in we just did is recorded as auth.login.succeeded and surfaced by the metric).
   await expect(page.getByRole('heading', { name: 'Users', exact: true })).toBeVisible()
+  await expect(page.getByText(/Most recent login:/)).toBeVisible()
 
   // 2) Click through EVERY console screen; each must become the active route.
   for (const label of SCREENS) {
