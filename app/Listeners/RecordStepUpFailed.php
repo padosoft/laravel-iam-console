@@ -19,11 +19,13 @@ class RecordStepUpFailed
     public function handle(TwoFactorAuthenticationFailed $event): void
     {
         try {
+            $id = $event->user instanceof User ? (string) $event->user->getAuthIdentifier() : null;
             $this->audit->record([
                 'stream' => 'auth',
                 'event_type' => 'auth.stepup.failed',
                 'target_type' => 'user',
-                'target_id' => $event->user instanceof User ? (string) $event->user->getAuthIdentifier() : null,
+                'target_id' => $id,
+                'actor_user_id' => $id, // the actor of the failed challenge is the user (audit Actor column)
             ]);
         } catch (\Throwable $e) {
             report($e);

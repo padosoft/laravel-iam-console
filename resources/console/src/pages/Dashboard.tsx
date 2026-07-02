@@ -82,7 +82,8 @@ export default function Dashboard() {
           error={users.error}
           note={(() => {
             const last = (users.data?.logins as { last_login_at?: unknown } | undefined)?.last_login_at
-            return last ? <>Last login: <span className="text-ink/80">{formatDate(last)}</span></> : undefined
+            // Tenant-wide MAX across auth.login.succeeded — most recent sign-in by ANY user, not the operator's.
+            return last ? <>Most recent login: <span className="text-ink/80">{formatDate(last)}</span></> : undefined
           })()}
         />
         <StatGrid title="Decisions" to="/playground" metrics={decisions.data} loading={decisions.loading} error={decisions.error} />
