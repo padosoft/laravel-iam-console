@@ -53,10 +53,12 @@ test('login → every screen → create user → assign a permission', async ({ 
   await page.getByRole('link', { name: 'Sessions', exact: true }).click()
   await expect(page.locator('table tbody tr').first()).toBeVisible()
 
-  // 2c) Decision playground subject-type actually switches (regression: it used to snap back to 'user').
+  // 2c) Decision playground subject-type actually switches (regression: it used to snap back to 'user'),
+  // and the "Explain with AI" action is wired.
   await page.getByRole('link', { name: 'Decision playground', exact: true }).click()
   await page.getByLabel('Subject type').selectOption('group')
   await expect(page.getByLabel('Subject type')).toHaveValue('group')
+  await expect(page.getByRole('button', { name: 'Explain with AI' })).toBeVisible()
 
   // 3) Create a new user.
   await page.getByRole('link', { name: 'Users', exact: true }).click()

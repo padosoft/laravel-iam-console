@@ -193,6 +193,32 @@ class ConsoleTest extends TestCase
         $this->getJson('/api/iam/v1/users')->assertStatus(403);
     }
 
+    public function test_ai_explain_returns_a_deterministic_advisory_when_ai_disabled(): void
+    {
+        $user = User::factory()->create();
+        Grant::query()->create([
+            'subject_type' => 'user', 'subject_id' => (string) $user->getKey(),
+            'privilege_type' => 'permission', 'privilege_key' => 'iam:decisions.explain',
+        ]);
+        $this->actingAs($user);
+
+        $res = $this->postJson('/api/console/ai-explain', ['subject' => ['type' => 'user', 'id' => 'nobody'], 'permission' => 'warehouse:x']);
+
+        // AI is disabled in tests → the module returns the deterministic explanation (never an error).
+        $res->assertOk()
+            ->assertJsonPath('data.advisory_only', true)
+            ->assertJsonPath('data.ai_used', false);
+        $this->assertNotEmpty($res->json('data.text'));
+    }
+
+    public function test_ai_explain_requires_the_decisions_explain_permission(): void
+    {
+        $this->actingAs(User::factory()->create()); // no grants
+
+        $this->postJson('/api/console/ai-explain', ['subject' => ['type' => 'user', 'id' => 'x'], 'permission' => 'y'])
+            ->assertStatus(403);
+    }
+
     public function test_logout_is_audited(): void
     {
         $user = User::factory()->create();

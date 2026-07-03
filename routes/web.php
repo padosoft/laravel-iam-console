@@ -4,6 +4,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
+use Padosoft\Iam\Ai\Modules\AccessExplainer;
 use Padosoft\Iam\Contracts\Authorization\AuthorizationEngine;
 
 // Landing → the console (Fortify redirects unauthenticated users to /login).
@@ -58,6 +59,35 @@ Route::middleware(['auth', 'iam.session_active'])->group(function () {
         ]);
 
         return response()->json(['data' => ['id' => (string) $user->getKey(), 'name' => $user->name, 'email' => $user->email]], 201);
+    });
+
+    // AI explain (advisory): natural-language reasoning over a PDP decision, via the AI module
+    // (AccessExplainer → configured provider, e.g. regolo) with redaction + hallucination-guard. The AI
+    // never decides — it re-phrases the PDP's own explanation. Always safe: if AI is disabled or the
+    // provider errors/hallucinates, it returns the deterministic explanation. Gated by iam:decisions.explain.
+    Route::post('/api/console/ai-explain', function (Request $request) {
+        $data = $request->validate([
+            'subject' => ['required', 'array'],
+            'subject.type' => ['required', 'string', 'max:64'],
+            'subject.id' => ['required', 'string', 'max:255'],
+            'permission' => ['required', 'string', 'max:255'],
+            'application' => ['nullable', 'string', 'max:255'],
+            'question' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $actor = ['type' => 'user', 'id' => (string) $request->user()->getAuthIdentifier()];
+        $engine = app(AuthorizationEngine::class);
+        abort_unless(($engine->check(['subject' => $actor, 'permission' => 'iam:decisions.explain'])['allowed'] ?? false) === true, 403, 'iam:decisions.explain denied');
+
+        $decision = $engine->check([
+            'subject' => ['type' => $data['subject']['type'], 'id' => $data['subject']['id']],
+            'permission' => $data['permission'],
+            'application' => $data['application'] ?? null,
+        ]);
+
+        $advisory = app(AccessExplainer::class)->explain($decision, is_string($data['question'] ?? null) ? $data['question'] : '');
+
+        return response()->json(['data' => $advisory->toArray()]);
     });
 
     // Serve the built React SPA for every /console route (client-side routing). `npm run build`
