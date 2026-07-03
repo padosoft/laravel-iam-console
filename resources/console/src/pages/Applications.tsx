@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { apiGet, apiPost, errorMessage } from '../lib/api'
 import { useCursorList, useResource } from '../hooks/useApi'
-import { asText, pick } from '../lib/format'
+import { asText, formatDate, pick } from '../lib/format'
 import PageHeader from '../components/PageHeader'
 import { useToast } from '../components/toast-context'
 import { Badge, Button, Card, EmptyState, ErrorState, Field, KeyValues, Loading, Modal, Table, Td, Th } from '../components/ui'
@@ -210,6 +210,100 @@ function Credential({ label, value, onCopy, mono }: { label: string; value: stri
   )
 }
 
+function statusTone(s: string): 'ok' | 'warn' | 'danger' | 'neutral' {
+  if (s === 'ok') return 'ok'
+  if (s === 'expiring') return 'warn'
+  if (s === 'expired' || s === 'revoked') return 'danger'
+  return 'neutral'
+}
+
+function ClientCredentials({ appKey }: { appKey: string }) {
+  const toast = useToast()
+  const [info, setInfo] = useState<Row | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [failed, setFailed] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [newSecret, setNewSecret] = useState<string | null>(null)
+
+  async function load() {
+    setLoading(true)
+    try {
+      setInfo(await apiGet<Row>(`applications/${encodeURIComponent(appKey)}/client`))
+    } catch {
+      setFailed(true) // app may have no OAuth client (public / not yet applied) → hide the section
+    } finally {
+      setLoading(false)
+    }
+  }
+  useEffect(() => {
+    void load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appKey])
+
+  async function rotate() {
+    setBusy(true)
+    try {
+      const res = await apiPost<Row>(`applications/${encodeURIComponent(appKey)}/rotate-secret`)
+      setNewSecret(asText(pick(res, ['client_secret'])))
+      toast.success('Secret rotated — the old one stays valid during the grace window.')
+      void load()
+    } catch (e) {
+      toast.error(errorMessage(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function revoke() {
+    setBusy(true)
+    try {
+      await apiPost(`applications/${encodeURIComponent(appKey)}/revoke-client`)
+      toast.success('Client revoked.')
+      void load()
+    } catch (e) {
+      toast.error(errorMessage(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (loading || failed || !info) {
+    return null
+  }
+
+  const status = asText(pick(info, ['secret_status']))
+  const revoked = status === 'revoked'
+  const isPublic = status === 'public'
+
+  return (
+    <section>
+      <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-faint">OAuth client</h3>
+      <div className="space-y-3 rounded-lg border border-line bg-surface-2/40 p-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <code className="font-mono text-xs text-ink">{asText(pick(info, ['client_id']))}</code>
+          <Badge tone={statusTone(status)}>{status}</Badge>
+          {pick(info, ['grace_active']) === true && <Badge tone="warn">grace until {formatDate(pick(info, ['grace_until']))}</Badge>}
+        </div>
+        {asText(pick(info, ['secret_expires_at'])) !== '—' && <p className="text-xs text-muted">Secret expires {formatDate(pick(info, ['secret_expires_at']))}</p>}
+
+        {newSecret && (
+          <div className="space-y-2">
+            <Credential label="new client_secret" value={newSecret} onCopy={(v) => { void navigator.clipboard?.writeText(v); toast.success('Copied.') }} mono />
+            <div className="rounded-lg border border-warn/40 bg-warn/10 p-3 text-xs text-warn">Deploy this to the app during the grace window — shown once. The previous secret keeps working until the grace ends, so there's no downtime.</div>
+          </div>
+        )}
+
+        {!isPublic && !revoked && (
+          <div className="flex gap-2">
+            <Button variant="secondary" loading={busy} onClick={rotate}>Rotate secret</Button>
+            <Button variant="danger" loading={busy} onClick={revoke}>Revoke client</Button>
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}
+
 function ApplicationDetail({ app, onClose }: { app: Row; onClose: () => void }) {
   const id = appId(app)
   const manifest = useResource<unknown>(() => apiGet(`applications/${encodeURIComponent(id)}/manifest`), [id])
@@ -221,6 +315,7 @@ function ApplicationDetail({ app, onClose }: { app: Row; onClose: () => void }) 
           <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-faint">Application</h3>
           <KeyValues data={app} />
         </section>
+        <ClientCredentials appKey={id} />
         <section>
           <div className="mb-2 flex items-center gap-2">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-faint">Applied manifest</h3>
