@@ -15,7 +15,7 @@ function appId(a: Row): string {
 const SAMPLE_MANIFEST = `{
   "schema": "laravel-iam.manifest.v2",
   "app": { "key": "my-app", "name": "My App", "type": "laravel", "risk_level": "low" },
-  "auth": { "client_type": "confidential", "redirect_uris": ["https://my-app.example.com/callback"] },
+  "auth": { "client_type": "confidential", "redirect_uris": ["https://my-app.example.com/callback"], "auto_rotate": false, "rotate_interval_days": 90 },
   "permissions": [
     { "key": "reports.read", "resource": "reports", "action": "read", "risk": "low" }
   ],
@@ -282,6 +282,7 @@ function ClientCredentials({ appKey }: { appKey: string }) {
         <div className="flex flex-wrap items-center gap-3">
           <code className="font-mono text-xs text-ink">{asText(pick(info, ['client_id']))}</code>
           <Badge tone={statusTone(status)}>{status}</Badge>
+          {pick(info, ['auto_rotate']) === true && <Badge tone="info">auto-rotate · every {asText(pick(info, ['rotate_interval_days']))}d</Badge>}
           {pick(info, ['grace_active']) === true && <Badge tone="warn">grace until {formatDate(pick(info, ['grace_until']))}</Badge>}
         </div>
         {asText(pick(info, ['secret_expires_at'])) !== '—' && <p className="text-xs text-muted">Secret expires {formatDate(pick(info, ['secret_expires_at']))}</p>}
