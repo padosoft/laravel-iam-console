@@ -45,15 +45,12 @@ class FortifyServiceProvider extends ServiceProvider
         Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
         Fortify::redirectUserForTwoFactorAuthenticationUsing(RedirectIfTwoFactorAuthenticatable::class);
 
-        // Open a server-side IAM session (iam_sessions) when the operator logs in, so the Sessions screen
-        // shows the current session and OIDC /authorize can rely on a live IdP login; revoke it on logout.
-        Event::listen(Login::class, StartIamSession::class);
-        Event::listen(Logout::class, EndIamSession::class);
-
-        // Audit login activity so GET /metrics/users can surface it on the Dashboard.
-        Event::listen(Login::class, RecordLoginSucceeded::class);
-        Event::listen(Failed::class, RecordLoginFailed::class);
-        Event::listen(TwoFactorAuthenticationFailed::class, RecordStepUpFailed::class);
+        // Event listeners are auto-registered by Laravel 11 from app/Listeners (by their handle() type-hint):
+        //   Login → StartIamSession (opens the iam_sessions row) + RecordLoginSucceeded (audit for metrics)
+        //   Logout → EndIamSession (revokes the IdP session + audits logout)
+        //   Failed → RecordLoginFailed;  TwoFactorAuthenticationFailed → RecordStepUpFailed
+        // Do NOT also register them here with Event::listen — that double-fires (e.g. two
+        // auth.login.succeeded rows per login). A ConsoleTest asserts exactly one per login.
 
         // Login screen for the admin console (Blade). After login Fortify redirects to `home`
         // (config/fortify.php → /console) where the React SPA takes over.
