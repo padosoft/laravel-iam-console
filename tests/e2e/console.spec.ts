@@ -156,6 +156,38 @@ test('login → every screen → create user → assign a permission', async ({ 
   await expect(page.getByText(team2)).toHaveCount(0)
   await expect(page.getByText(team1)).toBeVisible()
 
+  // 4d) Onboarding: register a new app via manifest → approve → apply → see client_id + one-time secret.
+  await page.getByRole('link', { name: 'Applications', exact: true }).click()
+  await page.getByRole('button', { name: 'Register / update app' }).click()
+  const appKey = `e2e-app-${s}`
+  await page.locator('textarea').fill(JSON.stringify({
+    schema: 'laravel-iam.manifest.v2',
+    app: { key: appKey, name: 'E2E App', type: 'laravel', risk_level: 'low' },
+    auth: { client_type: 'confidential', redirect_uris: ['https://e2e.example.com/callback'] },
+    permissions: [{ key: 'thing.read', resource: 'thing', action: 'read', risk: 'low' }],
+    roles: [{ key: 'viewer', label: 'Viewer', permissions: ['thing.read'] }],
+  }))
+  await Promise.all([
+    page.waitForResponse((x) => /\/manifests$/.test(x.url()) && x.request().method() === 'POST'),
+    page.getByRole('button', { name: 'Submit manifest' }).click(),
+  ])
+  // The submitted manifest renders with an Approve (sensitive change) or Apply (auto-approved) button.
+  await expect(page.getByRole('button', { name: /^(Approve|Apply)$/ })).toBeVisible()
+  if (await page.getByRole('button', { name: 'Approve' }).isVisible().catch(() => false)) {
+    await Promise.all([
+      page.waitForResponse((x) => /\/approve$/.test(x.url()) && x.request().method() === 'POST'),
+      page.getByRole('button', { name: 'Approve' }).click(),
+    ])
+    await expect(page.getByRole('button', { name: 'Apply' })).toBeVisible()
+  }
+  await Promise.all([
+    page.waitForResponse((x) => /\/apply$/.test(x.url()) && x.request().method() === 'POST'),
+    page.getByRole('button', { name: 'Apply' }).click(),
+  ])
+  await expect(page.getByText(`cli_${appKey}`)).toBeVisible() // client_id shown
+  await expect(page.getByText('client_secret', { exact: true })).toBeVisible() // one-time secret revealed
+  await page.getByRole('button', { name: 'Done' }).click() // close the onboarding modal
+
   // 5) Audit log (auth stream by default) shows the login event.
   await page.getByRole('link', { name: 'Audit log', exact: true }).click()
   await expect(page.getByText('auth.login.succeeded').first()).toBeVisible()
