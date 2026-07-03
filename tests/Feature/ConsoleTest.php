@@ -112,6 +112,13 @@ class ConsoleTest extends TestCase
             AuditEvent::query()->where('event_type', 'auth.login.succeeded')->exists(),
             'a successful login should emit auth.login.succeeded',
         );
+        // Exactly one per login — Laravel 11 auto-registers app/Listeners, so an extra Event::listen
+        // would double-record (regression guard for the duplicate audit-log entry).
+        $this->assertSame(
+            1,
+            AuditEvent::query()->where('event_type', 'auth.login.succeeded')->count(),
+            'a login must emit exactly ONE auth.login.succeeded (no double-registered listener)',
+        );
     }
 
     public function test_step_up_failure_is_audited_for_the_users_metric(): void

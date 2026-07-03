@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { apiDelete, apiGetPage, apiPost, errorMessage } from '../lib/api'
-import { useCursorList } from '../hooks/useApi'
+import { apiDelete, apiGetPage, apiPatch, apiPost, errorMessage } from '../lib/api'
+import { useCursorList, useResource } from '../hooks/useApi'
 import { useUserNames } from '../hooks/useUserNames'
 import { asText, pick } from '../lib/format'
 import PageHeader from '../components/PageHeader'
@@ -15,8 +15,18 @@ export default function Groups() {
   const list = useCursorList<Row>('groups', {}, 25)
   // A "deleted" group is soft-revoked (the API still returns it); hide revoked rows from the list.
   const rows = list.items.filter((g) => asText(pick(g, ['revoked_at'])) === '—')
+  // Resolve organization_id → a readable label (name, else key) for the Organization column.
+  const orgList = useResource(() => apiGetPage<Row>('organizations', { limit: 100 }), [])
+  const orgLabel = new Map<string, string>()
+  for (const o of orgList.data?.items ?? []) {
+    const id = asText(pick(o, ['id']))
+    const name = asText(pick(o, ['name']))
+    const key = asText(pick(o, ['key']))
+    if (id !== '—') orgLabel.set(id, name !== '—' ? name : key)
+  }
   const toast = useToast()
   const [creating, setCreating] = useState(false)
+  const [edit, setEdit] = useState<Row | null>(null)
   const [members, setMembers] = useState<Row | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
 
@@ -58,9 +68,14 @@ export default function Groups() {
                 <tr key={gid !== '—' ? gid : i} className="hover:bg-surface-2/60">
                   <Td className="font-mono text-xs">{asText(pick(g, ['key']))}</Td>
                   <Td className="font-medium text-ink">{asText(pick(g, ['name']))}</Td>
-                  <Td className="font-mono text-xs text-muted">{asText(pick(g, ['organization_id']))}</Td>
+                  <Td>{(() => {
+                    const orgId = asText(pick(g, ['organization_id']))
+                    const label = orgLabel.get(orgId)
+                    return label ? <span title={orgId}>{label}</span> : <span className="font-mono text-xs text-muted">{orgId}</span>
+                  })()}</Td>
                   <Td className="text-right">
                     <div className="flex justify-end gap-2">
+                      <Button variant="ghost" onClick={() => setEdit(g)}>Edit</Button>
                       <Button variant="ghost" onClick={() => setMembers(g)}>Members</Button>
                       <Button variant="danger" loading={busy === gid} onClick={() => remove(gid)}>Delete</Button>
                     </div>
@@ -78,8 +93,43 @@ export default function Groups() {
       </Card>
 
       {creating && <GroupCreate onClose={() => setCreating(false)} onSaved={() => { setCreating(false); list.reload() }} />}
+      {edit && <GroupEdit group={edit} onClose={() => setEdit(null)} onSaved={() => { setEdit(null); list.reload() }} />}
       {members && <GroupMembers group={members} onClose={() => setMembers(null)} />}
     </>
+  )
+}
+
+function GroupEdit({ group, onClose, onSaved }: { group: Row; onClose: () => void; onSaved: () => void }) {
+  const toast = useToast()
+  const gid = asText(pick(group, ['id']))
+  const [name, setName] = useState(String(pick(group, ['name']) ?? ''))
+  const [saving, setSaving] = useState(false)
+  const ready = name.trim() !== ''
+
+  async function save() {
+    if (!ready) return
+    setSaving(true)
+    try {
+      await apiPatch(`groups/${encodeURIComponent(gid)}`, { name })
+      toast.success('Group updated.')
+      onSaved()
+    } catch (e) {
+      toast.error(errorMessage(e))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Modal open title={`Edit ${asText(pick(group, ['key']))}`} onClose={onClose}>
+      <div className="space-y-4">
+        <Field label="Name"><Input value={name} onChange={(e) => setName(e.target.value)} /></Field>
+        <div className="flex justify-end gap-2 pt-2">
+          <Button variant="secondary" onClick={onClose}>Cancel</Button>
+          <Button variant="primary" loading={saving} disabled={!ready} onClick={save}>Save</Button>
+        </div>
+      </div>
+    </Modal>
   )
 }
 
