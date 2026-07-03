@@ -46,6 +46,17 @@ class IamRolesSeeder extends Seeder
         'user-manager' => ['User Manager', ['users.read', 'users.manage', 'sessions.read', 'sessions.manage', 'grants.manage'], false],
     ];
 
+    /**
+     * The full `iam:*` permission surface as full_keys (e.g. `iam:users.read`). Exposed so a test can
+     * assert it hasn't drifted from the Admin API and that the super-admin is allowed every one.
+     *
+     * @return list<string>
+     */
+    public static function permissionFullKeys(): array
+    {
+        return array_map(fn (string $k): string => "iam:{$k}", self::PERMISSIONS);
+    }
+
     public function run(): void
     {
         // 1) Ensure the iam:* permission catalog rows exist (role grants expand only through them).

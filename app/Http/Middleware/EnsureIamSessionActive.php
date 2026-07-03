@@ -39,7 +39,9 @@ class EnsureIamSessionActive
                     : redirect('/login');
             }
 
-            // Active: extend the IdP session's idle window for this activity.
+            // Active: extend the IdP session's idle window for this activity. NB: idle-timeout only fires
+            // for a genuinely idle tab because the SPA does not background-poll — if auto-refresh/polling
+            // is ever added, those requests would touch here and keep an unattended tab alive.
             $this->registry->touch(new SessionRef($sid));
         }
 
