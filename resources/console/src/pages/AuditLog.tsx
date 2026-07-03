@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { apiPost, errorMessage } from '../lib/api'
 import { useCursorList } from '../hooks/useApi'
+import { useUserNames } from '../hooks/useUserNames'
 import { asText, formatDate, pick } from '../lib/format'
 import PageHeader from '../components/PageHeader'
 import { useToast } from '../components/toast-context'
-import { Badge, Button, Card, EmptyState, ErrorState, KeyValues, Loading, Modal, Select, Table, Td, Th } from '../components/ui'
+import { Badge, Button, Card, EmptyState, ErrorState, Input, KeyValues, Loading, Modal, Select, Table, Td, Th } from '../components/ui'
 
 type Row = Record<string, unknown>
 
@@ -18,7 +19,21 @@ const STREAMS: Array<{ value: string; label: string }> = [
 
 export default function AuditLog() {
   const [stream, setStream] = useState('auth')
-  const list = useCursorList<Row>('audit/events', { stream }, 30)
+  const [search, setSearch] = useState('')
+  const [type, setType] = useState('')
+  useEffect(() => {
+    const t = setTimeout(() => setType(search), 250)
+    return () => clearTimeout(t)
+  }, [search])
+
+  const list = useCursorList<Row>('audit/events', { stream, type: type || undefined }, 30)
+  // Resolve actor + user-typed targets to name/email.
+  const names = useUserNames(
+    list.items.flatMap((e) => [
+      asText(pick(e, ['actor_user_id'])),
+      asText(pick(e, ['target_type'])) === 'user' ? asText(pick(e, ['target_id'])) : '',
+    ]),
+  )
   const toast = useToast()
   const [verifying, setVerifying] = useState(false)
   const [detail, setDetail] = useState<Row | null>(null)
@@ -47,6 +62,9 @@ export default function AuditLog() {
         description="Tamper-evident event stream. Switch streams to see auth, admin or governance events; verify the hash-chain to prove integrity."
         actions={
           <div className="flex items-center gap-2">
+            <div className="w-48">
+              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Filter by event type…" aria-label="Filter audit by event type" />
+            </div>
             <div className="w-56">
               <Select value={stream} onChange={(e) => setStream(e.target.value)} aria-label="Audit stream">
                 {STREAMS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
@@ -71,8 +89,20 @@ export default function AuditLog() {
               return (
                 <tr key={id} className="hover:bg-surface-2/60">
                   <Td><Badge tone="info">{asText(pick(e, ['event_type', 'type', 'action', 'name']))}</Badge></Td>
-                  <Td className="font-mono text-xs text-muted">{asText(pick(e, ['actor_user_id', 'actor', 'actor_id', 'causer']))}</Td>
-                  <Td className="font-mono text-xs text-muted">{asText(pick(e, ['target_id', 'target', 'resource', 'object']))}</Td>
+                  <Td>{(() => {
+                    const aid = asText(pick(e, ['actor_user_id']))
+                    const p = names.get(aid)
+                    return p && (p.name !== '—' || p.email !== '—')
+                      ? <span title={aid}>{p.name !== '—' ? p.name : p.email}</span>
+                      : <span className="font-mono text-xs text-muted">{aid}</span>
+                  })()}</Td>
+                  <Td>{(() => {
+                    const tid = asText(pick(e, ['target_id']))
+                    const p = asText(pick(e, ['target_type'])) === 'user' ? names.get(tid) : undefined
+                    return p && p.name !== '—'
+                      ? <span title={tid}>{p.name}</span>
+                      : <span className="font-mono text-xs text-muted">{tid}</span>
+                  })()}</Td>
                   <Td className="text-muted">{formatDate(pick(e, ['occurred_at', 'created_at', 'timestamp', 'ts']))}</Td>
                   <Td className="text-right"><Button variant="ghost" onClick={() => setDetail(e)}>View</Button></Td>
                 </tr>

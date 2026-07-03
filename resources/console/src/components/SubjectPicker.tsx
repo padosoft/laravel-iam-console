@@ -25,13 +25,9 @@ export default function SubjectPicker({
   return (
     <div className="grid grid-cols-3 gap-4">
       <Field label="Subject type">
-        <Select
-          value={type}
-          onChange={(e) => {
-            onType(e.target.value as SubjectType)
-            onId('') // reset the id when the type changes (a user id is meaningless for a group)
-          }}
-        >
+        {/* The parent's onType resets the id (a user id is meaningless for a group). We must NOT also
+            call onId here — two separate setState calls on a stale form closure would clobber the type. */}
+        <Select value={type} onChange={(e) => onType(e.target.value as SubjectType)}>
           <option value="user">user</option>
           <option value="group">group</option>
           <option value="service_account">service</option>

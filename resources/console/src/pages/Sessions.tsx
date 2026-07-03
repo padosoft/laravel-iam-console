@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { apiPost, errorMessage } from '../lib/api'
 import { useCursorList } from '../hooks/useApi'
+import { useUserNames } from '../hooks/useUserNames'
 import { asText, formatDate, pick } from '../lib/format'
 import PageHeader from '../components/PageHeader'
 import { useToast } from '../components/toast-context'
@@ -10,6 +11,7 @@ type Row = Record<string, unknown>
 
 export default function Sessions() {
   const list = useCursorList<Row>('sessions', {}, 25)
+  const names = useUserNames(list.items.map((s) => asText(pick(s, ['user_id', 'subject_id']))))
   const toast = useToast()
   const [busy, setBusy] = useState<string | null>(null)
 
@@ -48,7 +50,13 @@ export default function Sessions() {
               return (
                 <tr key={id} className="hover:bg-surface-2/60">
                   <Td className="font-mono text-xs text-muted">{id}</Td>
-                  <Td className="font-mono text-xs">{asText(pick(s, ['user_id', 'subject_id', 'subject', 'user']))}</Td>
+                  <Td>{(() => {
+                    const uid = asText(pick(s, ['user_id', 'subject_id']))
+                    const p = names.get(uid)
+                    return p && p.name !== '—'
+                      ? <><span className="text-ink">{p.name}</span>{p.email !== '—' && <div className="text-xs text-faint">{p.email}</div>}</>
+                      : <span className="font-mono text-xs text-muted">{uid}</span>
+                  })()}</Td>
                   <Td>
                     <div className="flex items-center gap-1.5">
                       {aal !== '—' ? <Badge tone={aal.toLowerCase() === 'aal1' ? 'neutral' : 'ok'}>{aal.toUpperCase()}</Badge> : <span className="text-faint">—</span>}
@@ -75,6 +83,9 @@ export default function Sessions() {
             <Button variant="secondary" onClick={list.loadMore} loading={list.loading}>Load more</Button>
           </div>
         )}
+        <div className="border-t border-line px-4 py-2 text-xs text-faint">
+          AAL = authenticator assurance level: <span className="text-muted">AAL1</span> password · <span className="text-muted">AAL2</span> step-up / 2FA · <span className="text-muted">AAL3</span> hardware key. Device tag is a privacy-safe hash prefix (distinguishes devices, not the IP).
+        </div>
       </Card>
     </>
   )

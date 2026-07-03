@@ -6,7 +6,7 @@ import PageHeader from '../components/PageHeader'
 import PrivilegePicker from '../components/PrivilegePicker'
 import SubjectPicker, { type SubjectType } from '../components/SubjectPicker'
 import { useToast } from '../components/toast-context'
-import { Badge, Button, Card, CardHeader, EmptyState, Field, Input, KeyValues, Spinner } from '../components/ui'
+import { Badge, Button, Card, CardHeader, EmptyState, Field, KeyValues, Spinner } from '../components/ui'
 
 interface Decision {
   allowed?: boolean
@@ -78,14 +78,9 @@ export default function DecisionPlayground() {
               <PrivilegePicker kind="permission" value={form.permission} onChange={(k) => setForm({ ...form, permission: k })} ariaLabel="Decision permission" />
             </Field>
 
-            <div className="grid grid-cols-2 gap-4">
-              <Field label="Organization" hint="optional">
-                <Input value={form.organization} onChange={(e) => setForm({ ...form, organization: e.target.value })} placeholder="org_…" />
-              </Field>
-              <Field label="Application" hint="optional">
-                <ApplicationPicker value={form.application} onChange={(a) => setForm({ ...form, application: a })} ariaLabel="Decision application" />
-              </Field>
-            </div>
+            <Field label="Application" hint="optional — scope the decision to one application">
+              <ApplicationPicker value={form.application} onChange={(a) => setForm({ ...form, application: a })} ariaLabel="Decision application" />
+            </Field>
 
             <div className="flex gap-2 pt-1">
               <Button variant="secondary" loading={busy === 'check'} disabled={!ready} onClick={() => run('check')}>Check</Button>
