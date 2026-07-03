@@ -24,9 +24,16 @@ to run your own IAM server; consuming apps separately install `padosoft/laravel-
   fail-closed. Non-GET SPA calls send `X-XSRF-TOKEN` (standard Laravel SPA CSRF).
 - **`iam.can` alias** is rebound to the SERVER's `AuthorizeIamPermission` in `AppServiceProvider::boot()`
   (app providers boot last, beating the client package's `IamCan`). The admin routes need the server one.
-- **Super-admin = all `iam:*` grants.** There is NO wildcard in the PDP. `SuperAdminSeeder` grants the first
-  user every `iam:*` permission the Admin API declares (direct permission grants; no catalog row needed).
-  Credentials via env: `IAM_SUPERADMIN_EMAIL` / `IAM_SUPERADMIN_PASSWORD` / `IAM_SUPERADMIN_NAME`.
+- **Super-admin = the `iam-admin` role.** There is NO wildcard in the PDP. `IamRolesSeeder` seeds the
+  `iam:*` permission catalog (`iam_permissions`) + default roles (`iam-admin` = every `iam:*`, plus
+  `iam-auditor`, `user-manager`) with their `role_permissions` pivots; `SuperAdminSeeder` then grants the
+  first user the single **`iam:iam-admin` role grant** (which expands to all `iam:*` via the catalog — a
+  role, not a wildcard). A role grant only expands if the catalog rows exist, so the seeder order matters
+  (a `ConsoleTest` drift-guard asserts the role covers the whole Admin API surface). Credentials via env:
+  `IAM_SUPERADMIN_EMAIL` / `IAM_SUPERADMIN_PASSWORD` / `IAM_SUPERADMIN_NAME`.
+- **Revoking a session logs you out.** `App\Http\Middleware\EnsureIamSessionActive` (on the `auth` groups)
+  checks the stashed `iam_sid` against the server `SessionRegistry` each request: a revoked/idle/expired
+  IdP session tears down the Fortify session (401 → SPA bounces to `/login`); active ones are `touch`ed.
 - **Passkeys deferred.** `laravel/passkeys` is not installable on Laravel 13 yet (its `web-auth/webauthn-lib`
   pins `symfony/clock ^6|^7`, Laravel 13 ships Symfony 8). Fortify only until upstream supports Symfony 8.
 - **Deploy = database + compute only.** No Redis / S3 required: `SESSION/CACHE/QUEUE=database`,
