@@ -1,59 +1,55 @@
 import { useState } from 'react'
-import { apiGet, apiPost, errorMessage } from '../lib/api'
-import { useResource } from '../hooks/useApi'
-import { asText, pick } from '../lib/format'
+import { apiPost, errorMessage } from '../lib/api'
+import ApplicationPicker from '../components/ApplicationPicker'
 import PageHeader from '../components/PageHeader'
-import UserSelect from '../components/UserSelect'
+import PrivilegePicker from '../components/PrivilegePicker'
+import SubjectPicker, { type SubjectType } from '../components/SubjectPicker'
 import { useToast } from '../components/toast-context'
-import { Badge, Button, Card, CardHeader, EmptyState, Field, Input, KeyValues, Select, Spinner } from '../components/ui'
+import { Badge, Button, Card, CardHeader, EmptyState, Field, KeyValues, Select, Spinner } from '../components/ui'
 
 type PrivilegeType = 'permission' | 'role'
 type Effect = 'permit' | 'deny'
 
 interface GrantForm {
+  subjectType: SubjectType
   subjectId: string
   privilegeType: PrivilegeType
   privilegeKey: string
+  application: string
   effect: Effect
 }
 
 function buildBody(form: GrantForm) {
   return {
-    subject: { type: 'user', id: form.subjectId },
+    subject: { type: form.subjectType, id: form.subjectId },
     privilege_type: form.privilegeType,
     privilege_key: form.privilegeKey,
-    application: null,
+    application: form.application || null,
     effect: form.effect,
   }
 }
 
-// The catalog endpoint returns { permissions:[{full_key,…}], roles:[{full_key,…}] }. Pull the keys for
-// one side (permissions OR roles) so the datalist suggests the right set for the chosen privilege type.
-function keysFrom(payload: unknown, field: 'permissions' | 'roles'): string[] {
-  const obj = payload && typeof payload === 'object' ? (payload as Record<string, unknown>) : {}
-  const arr = Array.isArray(obj[field]) ? (obj[field] as unknown[]) : []
-  const keys = arr.map((p) =>
-    typeof p === 'string' ? p : asText(pick(p as Record<string, unknown>, ['full_key', 'key', 'permission', 'name', 'code'])),
-  )
-  return Array.from(new Set(keys.filter((k) => k && k !== '—')))
-}
-
 export default function RolesGrants() {
   const toast = useToast()
-  const catalog = useResource<unknown>(() => apiGet('policies-wizard/permissions'), [])
 
   const [form, setForm] = useState<GrantForm>({
+    subjectType: 'user',
     subjectId: '',
     privilegeType: 'permission',
     privilegeKey: '',
+    application: '',
     effect: 'permit',
   })
   const [preview, setPreview] = useState<Record<string, unknown> | null>(null)
   const [previewing, setPreviewing] = useState(false)
   const [committing, setCommitting] = useState(false)
 
-  const ready = form.subjectId.trim() && form.privilegeKey.trim()
-  const keys = keysFrom(catalog.data, form.privilegeType === 'role' ? 'roles' : 'permissions')
+  const ready = form.subjectId.trim() !== '' && form.privilegeKey.trim() !== ''
+
+  function patch(next: Partial<GrantForm>) {
+    setForm((f) => ({ ...f, ...next }))
+    setPreview(null)
+  }
 
   async function runPreview() {
     setPreviewing(true)
@@ -84,52 +80,52 @@ export default function RolesGrants() {
 
   return (
     <>
-      <PageHeader title="Roles & Grants" description="Assign a permission or role to a user. Preview the impact before committing." />
+      <PageHeader title="Roles & Grants" description="Assign a permission or role to a subject. Preview the impact before committing." />
 
       <div className="grid gap-5 lg:grid-cols-2">
         <Card>
           <CardHeader title="Assign access" subtitle="Dry-run preview, then commit the grant." />
           <div className="space-y-4 p-5">
-            <Field label="User" hint="Subject the grant applies to (type: user).">
-              <UserSelect
-                ariaLabel="Grant subject user"
-                value={form.subjectId}
-                onChange={(id) => { setForm({ ...form, subjectId: id }); setPreview(null) }}
-              />
-            </Field>
+            <SubjectPicker
+              type={form.subjectType}
+              id={form.subjectId}
+              onType={(subjectType) => patch({ subjectType, subjectId: '' })}
+              onId={(subjectId) => patch({ subjectId })}
+              ariaLabel="Grant subject user"
+            />
 
             <div className="grid grid-cols-2 gap-4">
               <Field label="Privilege type">
-                <Select value={form.privilegeType} onChange={(e) => { setForm({ ...form, privilegeType: e.target.value as PrivilegeType }); setPreview(null) }}>
+                <Select value={form.privilegeType} onChange={(e) => patch({ privilegeType: e.target.value as PrivilegeType, privilegeKey: '' })}>
                   <option value="permission">Permission</option>
                   <option value="role">Role</option>
                 </Select>
               </Field>
               <Field label="Effect">
-                <Select value={form.effect} onChange={(e) => { setForm({ ...form, effect: e.target.value as Effect }); setPreview(null) }}>
+                <Select value={form.effect} onChange={(e) => patch({ effect: e.target.value as Effect })}>
                   <option value="permit">Permit</option>
                   <option value="deny">Deny</option>
                 </Select>
               </Field>
             </div>
 
-            <Field label="Privilege key" hint="e.g. iam:users.read or warehouse:stock.adjust">
-              <Input
-                list="privilege-keys"
+            <Field label={form.privilegeType === 'role' ? 'Role' : 'Permission'} hint="Grouped by application. Search by key.">
+              <PrivilegePicker
+                kind={form.privilegeType}
                 value={form.privilegeKey}
-                onChange={(e) => { setForm({ ...form, privilegeKey: e.target.value }); setPreview(null) }}
-                placeholder="iam:users.read"
+                onChange={(privilegeKey) => patch({ privilegeKey })}
+                ariaLabel="Grant privilege"
               />
-              <datalist id="privilege-keys">
-                {keys.map((k) => <option key={k} value={k} />)}
-              </datalist>
+            </Field>
+
+            <Field label="Application" hint="Optional — scope the grant to one application.">
+              <ApplicationPicker value={form.application} onChange={(application) => patch({ application })} ariaLabel="Grant application" />
             </Field>
 
             <div className="flex items-center gap-2 pt-1">
               <Button variant="secondary" loading={previewing} disabled={!ready} onClick={runPreview}>Preview impact</Button>
               <Button variant="primary" loading={committing} disabled={!preview} onClick={commit}>Commit grant</Button>
             </div>
-            {catalog.loading && <p className="flex items-center gap-2 text-xs text-faint"><Spinner className="size-3" /> Loading catalog…</p>}
           </div>
         </Card>
 
