@@ -117,11 +117,14 @@ function OrgCreate({ onClose, onSaved }: { onClose: () => void; onSaved: () => v
 function OrgEdit({ org, onClose, onSaved }: { org: Row; onClose: () => void; onSaved: () => void }) {
   const toast = useToast()
   const key = asText(pick(org, ['key']))
-  const [name, setName] = useState(asText(pick(org, ['name'])))
+  // Seed from the raw value (not asText) so a nameless org doesn't seed — and then persist — the '—' placeholder.
+  const [name, setName] = useState(String(pick(org, ['name']) ?? ''))
   const [status, setStatus] = useState(asText(pick(org, ['status'])) === 'suspended' ? 'suspended' : 'active')
   const [saving, setSaving] = useState(false)
+  const ready = name.trim() !== ''
 
   async function save() {
+    if (!ready) return
     setSaving(true)
     try {
       await apiPatch(`organizations/${encodeURIComponent(key)}`, { name, status })
@@ -146,7 +149,7 @@ function OrgEdit({ org, onClose, onSaved }: { org: Row; onClose: () => void; onS
         </Field>
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="secondary" onClick={onClose}>Cancel</Button>
-          <Button variant="primary" loading={saving} onClick={save}>Save</Button>
+          <Button variant="primary" loading={saving} disabled={!ready} onClick={save}>Save</Button>
         </div>
       </div>
     </Modal>

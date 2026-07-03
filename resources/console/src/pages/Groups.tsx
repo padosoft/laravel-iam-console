@@ -13,15 +13,19 @@ type Row = Record<string, unknown>
 
 export default function Groups() {
   const list = useCursorList<Row>('groups', {}, 25)
+  // A "deleted" group is soft-revoked (the API still returns it); hide revoked rows from the list.
+  const rows = list.items.filter((g) => asText(pick(g, ['revoked_at'])) === '—')
   const toast = useToast()
   const [creating, setCreating] = useState(false)
   const [members, setMembers] = useState<Row | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
 
-  async function remove(key: string) {
-    setBusy(key)
+  // Address groups by their unique id, never the key (a group key is unique only per-org, so for the
+  // global-admin console two orgs can share a key — using the key would hit the wrong org's group).
+  async function remove(id: string) {
+    setBusy(id)
     try {
-      await apiDelete(`groups/${encodeURIComponent(key)}`)
+      await apiDelete(`groups/${encodeURIComponent(id)}`)
       toast.success('Group deleted.')
       list.reload()
     } catch (e) {
@@ -44,21 +48,21 @@ export default function Groups() {
           <Loading />
         ) : list.error ? (
           <ErrorState message={list.error} onRetry={list.reload} />
-        ) : list.items.length === 0 ? (
+        ) : rows.length === 0 ? (
           <EmptyState title="No groups" hint="Create a group inside an organization." />
         ) : (
           <Table head={<><Th>Key</Th><Th>Name</Th><Th>Organization</Th><Th /></>}>
-            {list.items.map((g, i) => {
-              const key = asText(pick(g, ['key']))
+            {rows.map((g, i) => {
+              const gid = asText(pick(g, ['id']))
               return (
-                <tr key={String(pick(g, ['id']) ?? i)} className="hover:bg-surface-2/60">
-                  <Td className="font-mono text-xs">{key}</Td>
+                <tr key={gid !== '—' ? gid : i} className="hover:bg-surface-2/60">
+                  <Td className="font-mono text-xs">{asText(pick(g, ['key']))}</Td>
                   <Td className="font-medium text-ink">{asText(pick(g, ['name']))}</Td>
                   <Td className="font-mono text-xs text-muted">{asText(pick(g, ['organization_id']))}</Td>
                   <Td className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button variant="ghost" onClick={() => setMembers(g)}>Members</Button>
-                      <Button variant="danger" loading={busy === key} onClick={() => remove(key)}>Delete</Button>
+                      <Button variant="danger" loading={busy === gid} onClick={() => remove(gid)}>Delete</Button>
                     </div>
                   </Td>
                 </tr>
@@ -118,7 +122,8 @@ function GroupCreate({ onClose, onSaved }: { onClose: () => void; onSaved: () =>
 
 function GroupMembers({ group, onClose }: { group: Row; onClose: () => void }) {
   const toast = useToast()
-  const groupKey = asText(pick(group, ['key']))
+  const groupKey = asText(pick(group, ['key'])) // display only
+  const groupId = asText(pick(group, ['id']))   // API path (unique across orgs)
   const [items, setItems] = useState<Row[]>([])
   const [loading, setLoading] = useState(true)
   const [type, setType] = useState<SubjectType>('user')
@@ -130,7 +135,7 @@ function GroupMembers({ group, onClose }: { group: Row; onClose: () => void }) {
   async function load() {
     setLoading(true)
     try {
-      const page = await apiGetPage<Row>(`groups/${encodeURIComponent(groupKey)}/members`, { limit: 100 })
+      const page = await apiGetPage<Row>(`groups/${encodeURIComponent(groupId)}/members`, { limit: 100 })
       setItems(page.items)
     } catch (e) {
       toast.error(errorMessage(e))
@@ -141,13 +146,13 @@ function GroupMembers({ group, onClose }: { group: Row; onClose: () => void }) {
   useEffect(() => {
     void load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [groupKey])
+  }, [groupId])
 
   async function add() {
     if (!id.trim()) return
     setBusy(true)
     try {
-      await apiPost(`groups/${encodeURIComponent(groupKey)}/members`, { member_type: type, member_id: id })
+      await apiPost(`groups/${encodeURIComponent(groupId)}/members`, { member_type: type, member_id: id })
       toast.success('Member added.')
       setId('')
       void load()
@@ -160,7 +165,7 @@ function GroupMembers({ group, onClose }: { group: Row; onClose: () => void }) {
 
   async function removeMember(memberType: string, memberId: string) {
     try {
-      await apiDelete(`groups/${encodeURIComponent(groupKey)}/members`, { member_type: memberType, member_id: memberId })
+      await apiDelete(`groups/${encodeURIComponent(groupId)}/members`, { member_type: memberType, member_id: memberId })
       toast.success('Member removed.')
       void load()
     } catch (e) {
