@@ -37,6 +37,14 @@ Route::prefix(config('iam.admin.route_prefix', 'api/iam/v1'))
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth', 'iam.session_active'])->group(function () {
+    // Current operator (for the topbar identity). No Admin API "whoami" exists; the SPA probes this
+    // same-origin, session-authed route so it can show the operator's name instead of a generic label.
+    Route::get('/api/user', fn (Request $request) => response()->json([
+        'id' => (string) $request->user()->getAuthIdentifier(),
+        'name' => $request->user()->name,
+        'email' => $request->user()->email,
+    ]));
+
     // Create a local user. The IAM Admin API does NOT create users (users come from the app's own
     // auth); the console owns user creation, then grants are assigned via the Admin API policy wizard.
     // Requires the operator to be permitted to manage users (PDP), mirroring the Admin API surface.

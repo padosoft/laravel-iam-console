@@ -42,6 +42,8 @@ test('login → every screen → create user → assign a permission', async ({ 
   // (the sign-in we just did is recorded as auth.login.succeeded and surfaced by the metric).
   await expect(page.getByRole('heading', { name: 'Users', exact: true })).toBeVisible()
   await expect(page.getByText(/Most recent login:/)).toBeVisible()
+  // The topbar shows the operator's real name (via /api/user), not the generic "Operator" fallback.
+  await expect(page.getByText('Super Admin').first()).toBeVisible()
 
   // 2) Click through EVERY console screen; each must become the active route.
   for (const label of SCREENS) {
