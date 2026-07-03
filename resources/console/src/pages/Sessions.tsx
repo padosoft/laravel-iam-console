@@ -51,7 +51,7 @@ export default function Sessions() {
                   <Td className="font-mono text-xs">{asText(pick(s, ['user_id', 'subject_id', 'subject', 'user']))}</Td>
                   <Td>
                     <div className="flex items-center gap-1.5">
-                      {aal !== '—' ? <Badge tone={aal === 'aal1' ? 'neutral' : 'ok'}>{aal.toUpperCase()}</Badge> : <span className="text-faint">—</span>}
+                      {aal !== '—' ? <Badge tone={aal.toLowerCase() === 'aal1' ? 'neutral' : 'ok'}>{aal.toUpperCase()}</Badge> : <span className="text-faint">—</span>}
                       {stepUp != null && <span className="text-xs text-ok" title="stepped up">↑</span>}
                     </div>
                   </Td>

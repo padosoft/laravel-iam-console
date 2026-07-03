@@ -99,7 +99,11 @@ test('login → every screen → create user → assign a permission', async ({ 
   await page.getByRole('button', { name: 'New campaign' }).click()
   await page.getByPlaceholder('Q3 access certification').fill('E2E review')
   await page.getByRole('button', { name: 'Create', exact: true }).click()
-  await page.getByRole('button', { name: 'Open' }).first().click()
+  // Wait for the open POST to materialize the items before opening the review (else it loads empty).
+  await Promise.all([
+    page.waitForResponse((r) => /access-reviews\/campaigns\/.+\/open/.test(r.url()) && r.request().method() === 'POST'),
+    page.getByRole('button', { name: 'Open' }).first().click(),
+  ])
   await page.getByRole('button', { name: 'Review' }).first().click()
   await expect(page.getByText('Super Admin')).toBeVisible()
 })

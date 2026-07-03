@@ -19,6 +19,18 @@ function statusTone(s: string): 'ok' | 'warn' | 'neutral' | 'danger' {
   return 'warn' // draft
 }
 
+// Run an async fn over items with at most `limit` in flight (bounds the subject-resolution fan-out).
+async function mapPool<T>(items: T[], limit: number, fn: (item: T) => Promise<void>): Promise<void> {
+  let i = 0
+  const worker = async (): Promise<void> => {
+    while (i < items.length) {
+      const idx = i++
+      await fn(items[idx])
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker))
+}
+
 export default function AccessReviews() {
   const list = useCursorList<Row>('access-reviews/campaigns', {}, 25)
   const toast = useToast()
@@ -117,21 +129,23 @@ function CampaignReview({ campaign, onClose }: { campaign: Row; onClose: () => v
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
 
-  const load = useCallback(async () => {
-    setLoading(true)
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true)
     setError(null)
     try {
-      // Pull every item (grouping is client-side; the endpoint only cursor-paginates).
+      // Pull every item (grouping is client-side; the endpoint only cursor-paginates). Defensive
+      // guards: stop on an empty page and cap iterations so a backend cursor slip can't freeze the tab.
       const all: Row[] = []
       let cursor: string | null = null
+      let guard = 0
       do {
         const page: Page<Row> = await apiGetPage<Row>(`access-reviews/campaigns/${encodeURIComponent(id)}/items`, { cursor, limit: 100 })
         all.push(...page.items)
-        cursor = page.nextCursor
-      } while (cursor)
+        cursor = page.items.length === 0 ? null : page.nextCursor
+      } while (cursor && ++guard < 200)
       setItems(all)
 
-      // Resolve distinct user subjects to name/email (one call per distinct user, deduped).
+      // Resolve distinct user subjects to name/email (one call per distinct user), bounded to 8 in flight.
       const userIds = [
         ...new Set(
           all
@@ -141,21 +155,19 @@ function CampaignReview({ campaign, onClose }: { campaign: Row; onClose: () => v
         ),
       ]
       const map = new Map<string, Person>()
-      await Promise.all(
-        userIds.map(async (uid) => {
-          try {
-            const u = await apiGet<Record<string, unknown>>(`users/${encodeURIComponent(uid)}`)
-            map.set(uid, { name: asText(pick(u, ['name'])), email: asText(pick(u, ['email'])) })
-          } catch {
-            /* leave unresolved → falls back to the id */
-          }
-        }),
-      )
+      await mapPool(userIds, 8, async (uid) => {
+        try {
+          const u = await apiGet<Record<string, unknown>>(`users/${encodeURIComponent(uid)}`)
+          map.set(uid, { name: asText(pick(u, ['name'])), email: asText(pick(u, ['email'])) })
+        } catch {
+          /* leave unresolved → falls back to the id */
+        }
+      })
       setPeople(map)
     } catch (e) {
       setError(errorMessage(e))
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }, [id])
 
@@ -168,7 +180,7 @@ function CampaignReview({ campaign, onClose }: { campaign: Row; onClose: () => v
     try {
       await apiPost(`access-reviews/items/${encodeURIComponent(itemId)}/${action}`)
       toast.success(`Access ${action === 'certify' ? 'certified' : 'revoked'}.`)
-      await load()
+      await load(true) // silent: keep the review visible (per-item spinner), don't blank the modal
     } catch (e) {
       toast.error(errorMessage(e))
     } finally {
@@ -267,7 +279,7 @@ function SubjectBlock({
 
 function ItemRow({ item, busy, onDecide }: { item: Row; busy: string | null; onDecide: (itemId: string, action: 'certify' | 'revoke') => void }) {
   const itemId = String(pick(item, ['id']) ?? '')
-  const decision = asText(pick(item, ['decision', 'status']))
+  const decision = asText(pick(item, ['decision']))
   const isRole = asText(pick(item, ['privilege_type'])) === 'role'
   const key = asText(pick(item, ['privilege_key']))
   const deny = asText(pick(item, ['effect'])) === 'deny'
