@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { apiGet } from '../lib/api'
 import { useResource, useCursorList } from '../hooks/useApi'
+import { useRotationAlerts } from '../hooks/useRotationAlerts'
 import { asText, formatDate, pick } from '../lib/format'
 import PageHeader from '../components/PageHeader'
 import { Card, CardHeader, EmptyState, ErrorState, Loading, Table, Td, Th, Badge } from '../components/ui'
@@ -62,6 +63,33 @@ function StatGrid({ title, to, metrics, loading, error, note }: { title: string;
   )
 }
 
+// Client secrets needing rotation (expired/expiring) — hidden when there's nothing to act on.
+function ClientSecretsCard() {
+  const alerts = useRotationAlerts()
+  if (!alerts || alerts.needs_rotation <= 0) {
+    return null
+  }
+  return (
+    <Card>
+      <CardHeader
+        title="Client secrets to rotate"
+        subtitle={`${alerts.expired} expired · ${alerts.expiring} expiring · ${alerts.in_grace} in grace`}
+        actions={<Link to="/applications" className="text-sm text-accent-2 hover:underline">Applications</Link>}
+      />
+      <Table head={<><Th>Application</Th><Th>Client</Th><Th>Status</Th><Th>Expires</Th></>}>
+        {alerts.items.map((c, i) => (
+          <tr key={asText(pick(c, ['client_id'])) !== '—' ? asText(pick(c, ['client_id'])) : i}>
+            <Td className="font-medium text-ink">{asText(pick(c, ['application_key']))}</Td>
+            <Td className="font-mono text-xs text-muted">{asText(pick(c, ['client_id']))}</Td>
+            <Td><Badge tone={asText(pick(c, ['status'])) === 'expired' ? 'danger' : 'warn'}>{asText(pick(c, ['status']))}</Badge></Td>
+            <Td className="text-muted">{formatDate(pick(c, ['secret_expires_at']))}</Td>
+          </tr>
+        ))}
+      </Table>
+    </Card>
+  )
+}
+
 export default function Dashboard() {
   const users = useResource<Metrics>(() => apiGet('metrics/users'), [])
   const decisions = useResource<Metrics>(() => apiGet('metrics/decisions'), [])
@@ -74,6 +102,7 @@ export default function Dashboard() {
       <PageHeader title="Dashboard" description="Live decision, grant and audit metrics across the tenant." />
 
       <div className="space-y-5">
+        <ClientSecretsCard />
         <StatGrid
           title="Users"
           to="/users"

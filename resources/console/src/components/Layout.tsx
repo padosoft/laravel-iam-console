@@ -5,6 +5,7 @@ import { NavLink, Outlet } from 'react-router-dom'
 import { apiPost, errorMessage } from '../lib/api'
 import { cx, initials } from '../lib/format'
 import { useCurrentUser } from '../hooks/useCurrentUser'
+import { useRotationAlerts } from '../hooks/useRotationAlerts'
 import { Button } from './ui'
 import { useToast } from './toast-context'
 
@@ -57,6 +58,21 @@ function NavItemLink({ item, onNavigate }: { item: NavItem; onNavigate?: () => v
       {item.icon}
       <span>{item.label}</span>
     </NavLink>
+  )
+}
+
+// Global alert: OAuth client secrets that are expiring/expired and need rotation (from GET metrics/clients).
+function RotationBanner() {
+  const alerts = useRotationAlerts()
+  if (!alerts || alerts.needs_rotation <= 0) {
+    return null
+  }
+  const n = alerts.needs_rotation
+  return (
+    <div className="mb-5 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-warn/40 bg-warn/10 px-4 py-2.5 text-sm text-warn">
+      <span>⚠ {n} app secret{n > 1 ? 's' : ''} need rotation{alerts.expired > 0 ? ` — ${alerts.expired} already expired` : ''}.</span>
+      <NavLink to="/applications" className="font-medium underline hover:no-underline">Review applications →</NavLink>
+    </div>
   )
 }
 
@@ -133,6 +149,7 @@ export default function Layout() {
         </header>
 
         <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6">
+          <RotationBanner />
           <Outlet />
         </main>
       </div>
