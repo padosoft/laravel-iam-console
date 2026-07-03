@@ -90,14 +90,14 @@ export default function AuditLog() {
                 <tr key={id} className="hover:bg-surface-2/60">
                   <Td><Badge tone="info">{asText(pick(e, ['event_type', 'type', 'action', 'name']))}</Badge></Td>
                   <Td>{(() => {
-                    const aid = asText(pick(e, ['actor_user_id', 'actor', 'actor_id', 'causer']))
+                    const aid = asText(pick(e, ['actor_user_id']))
                     const p = names.get(aid)
                     return p && (p.name !== '—' || p.email !== '—')
                       ? <span title={aid}>{p.name !== '—' ? p.name : p.email}</span>
                       : <span className="font-mono text-xs text-muted">{aid}</span>
                   })()}</Td>
                   <Td>{(() => {
-                    const tid = asText(pick(e, ['target_id', 'target', 'resource', 'object']))
+                    const tid = asText(pick(e, ['target_id']))
                     const p = asText(pick(e, ['target_type'])) === 'user' ? names.get(tid) : undefined
                     return p && p.name !== '—'
                       ? <span title={tid}>{p.name}</span>
