@@ -3276,16 +3276,16 @@
         },
         {
             "name": "padosoft/laravel-iam-server",
-            "version": "v1.6.0",
+            "version": "v1.7.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/padosoft/laravel-iam-server.git",
-                "reference": "cd21da377b357135d943814d14d584ff7d62a84e"
+                "reference": "25b3b26530fafb8ebff8d0db07dd03ebdd746160"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/padosoft/laravel-iam-server/zipball/cd21da377b357135d943814d14d584ff7d62a84e",
-                "reference": "cd21da377b357135d943814d14d584ff7d62a84e",
+                "url": "https://api.github.com/repos/padosoft/laravel-iam-server/zipball/25b3b26530fafb8ebff8d0db07dd03ebdd746160",
+                "reference": "25b3b26530fafb8ebff8d0db07dd03ebdd746160",
                 "shasum": ""
             },
             "require": {
@@ -3336,9 +3336,9 @@
             "description": "Server Laravel IAM: identity, organizations, Application Registry + manifest, PDP (RBAC+ABAC+ReBAC), OAuth (league/oauth2-server) + OIDC layer, audit tamper-evident, governance/IGA, Admin API + panel.",
             "support": {
                 "issues": "https://github.com/padosoft/laravel-iam-server/issues",
-                "source": "https://github.com/padosoft/laravel-iam-server/tree/v1.6.0"
+                "source": "https://github.com/padosoft/laravel-iam-server/tree/v1.7.0"
             },
-            "time": "2026-07-03T08:40:34+00:00"
+            "time": "2026-07-03T11:27:36+00:00"
         },
         {
             "name": "paragonie/constant_time_encoding",

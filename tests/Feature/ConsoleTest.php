@@ -193,6 +193,17 @@ class ConsoleTest extends TestCase
         $this->getJson('/api/iam/v1/users')->assertStatus(403);
     }
 
+    public function test_whoami_returns_the_operator_identity(): void
+    {
+        $user = User::factory()->create(['name' => 'Grace Hopper']);
+        $this->actingAs($user);
+
+        $this->getJson('/api/user')
+            ->assertOk()
+            ->assertJsonPath('name', 'Grace Hopper')
+            ->assertJsonPath('email', $user->email);
+    }
+
     public function test_ai_explain_returns_a_deterministic_advisory_when_ai_disabled(): void
     {
         $user = User::factory()->create();

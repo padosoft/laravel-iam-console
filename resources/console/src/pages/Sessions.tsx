@@ -30,7 +30,7 @@ export default function Sessions() {
 
   return (
     <>
-      <PageHeader title="Sessions" description="Server-side IdP sessions. Revoke to force the operator out on their next request. IP/device are stored as privacy hashes — the Device tag distinguishes devices without deanonymizing." />
+      <PageHeader title="Sessions" description="Server-side IdP sessions. Revoke to force the operator out on their next request. IP/device are privacy hashes by default (a device tag distinguishes devices); set IAM_AUDIT_IP_MODE=full to show the real IP/user-agent for forensics." />
 
       <Card>
         {list.loading && list.items.length === 0 ? (
@@ -40,13 +40,15 @@ export default function Sessions() {
         ) : list.items.length === 0 ? (
           <EmptyState title="No active sessions" />
         ) : (
-          <Table head={<><Th>Session</Th><Th>Subject</Th><Th>Assurance</Th><Th>Device</Th><Th>Last active</Th><Th /></>}>
+          <Table head={<><Th>Session</Th><Th>Subject</Th><Th>Assurance</Th><Th>Device / IP</Th><Th>Last active</Th><Th /></>}>
             {list.items.map((s, i) => {
               const id = String(pick(s, ['id', 'session_id', 'uuid']) ?? i)
               const revoked = asText(pick(s, ['revoked_at', 'revoked'])) !== '—'
               const aal = asText(pick(s, ['aal']))
               const stepUp = pick(s, ['step_up_at'])
               const deviceTag = asText(pick(s, ['device_tag']))
+              const ip = asText(pick(s, ['ip']))
+              const ua = asText(pick(s, ['user_agent']))
               return (
                 <tr key={id} className="hover:bg-surface-2/60">
                   <Td className="font-mono text-xs text-muted">{id}</Td>
@@ -63,8 +65,13 @@ export default function Sessions() {
                       {stepUp != null && <span className="text-xs text-ok" title="stepped up">↑</span>}
                     </div>
                   </Td>
-                  {/* IP/UA are stored only as salted hashes (privacy); we show a non-reversible device tag. */}
-                  <Td className="font-mono text-xs text-muted">{deviceTag}</Td>
+                  {/* In hash mode (default) IP/UA are privacy hashes → show a non-reversible device tag.
+                      In full mode (IAM_AUDIT_IP_MODE=full) the API returns the real ip/user_agent. */}
+                  <Td className="text-xs">
+                    {ip !== '—'
+                      ? <><span className="font-mono text-ink">{ip}</span>{ua !== '—' && <div className="max-w-[16rem] truncate text-faint" title={ua}>{ua}</div>}</>
+                      : <span className="font-mono text-muted">{deviceTag}</span>}
+                  </Td>
                   <Td className="text-muted">{formatDate(pick(s, ['last_active_at', 'last_used_at', 'updated_at', 'created_at']))}</Td>
                   <Td className="text-right">
                     {revoked ? (
@@ -84,7 +91,7 @@ export default function Sessions() {
           </div>
         )}
         <div className="border-t border-line px-4 py-2 text-xs text-faint">
-          AAL = authenticator assurance level: <span className="text-muted">AAL1</span> password · <span className="text-muted">AAL2</span> step-up / 2FA · <span className="text-muted">AAL3</span> hardware key. Device tag is a privacy-safe hash prefix (distinguishes devices, not the IP).
+          AAL = authenticator assurance level: <span className="text-muted">AAL1</span> password · <span className="text-muted">AAL2</span> step-up / 2FA · <span className="text-muted">AAL3</span> hardware key. Device/IP shows a privacy-safe device tag by default; the real IP + user-agent appear only when IAM_AUDIT_IP_MODE=full (needs host TrustProxies for the true client IP).
         </div>
       </Card>
     </>
