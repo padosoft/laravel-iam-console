@@ -17,6 +17,8 @@ const SCREENS = [
   'Dashboard',
   'Users',
   'Roles & Grants',
+  'Organizations',
+  'Groups',
   'Sessions',
   'Audit log',
   'Access reviews',
@@ -98,6 +100,32 @@ test('login → every screen → create user → assign a permission', async ({ 
     page.getByRole('button', { name: 'Commit grant' }).click(),
   ])
   expect(commitResp.ok()).toBeTruthy()
+
+  // 4b) Multi-tenancy: create an organization, then a group inside it (via the searchable org picker).
+  await page.getByRole('link', { name: 'Organizations', exact: true }).click()
+  await page.getByRole('button', { name: 'New organization' }).click()
+  const orgKey = `e2e-org-${Date.now()}`
+  await page.getByPlaceholder('acme', { exact: true }).fill(orgKey)
+  await page.getByPlaceholder('Acme Inc', { exact: true }).fill('E2E Org')
+  const [orgResp] = await Promise.all([
+    page.waitForResponse((r) => /\/organizations$/.test(r.url()) && r.request().method() === 'POST'),
+    page.getByRole('button', { name: 'Create', exact: true }).click(),
+  ])
+  expect(orgResp.status()).toBe(201)
+  await expect(page.getByText(orgKey)).toBeVisible()
+
+  await page.getByRole('link', { name: 'Groups', exact: true }).click()
+  await page.getByRole('button', { name: 'New group' }).click()
+  await page.getByLabel('Group organization').fill('E2E Org')
+  await page.getByRole('option', { name: /E2E Org/ }).click()
+  await page.getByPlaceholder('engineering', { exact: true }).fill('e2e-team')
+  await page.getByPlaceholder('Engineering', { exact: true }).fill('E2E Team')
+  const [grpResp] = await Promise.all([
+    page.waitForResponse((r) => /\/groups$/.test(r.url()) && r.request().method() === 'POST'),
+    page.getByRole('button', { name: 'Create', exact: true }).click(),
+  ])
+  expect(grpResp.status()).toBe(201)
+  await expect(page.getByText('e2e-team')).toBeVisible()
 
   // 5) Audit log (auth stream by default) shows the login event.
   await page.getByRole('link', { name: 'Audit log', exact: true }).click()
