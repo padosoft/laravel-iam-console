@@ -81,6 +81,7 @@ export default function Users() {
                       <span>
                         <span className="block font-medium text-ink">{userName(u)}</span>
                         <span className="block text-xs text-faint">{asText(pick(u, ['email']))}</span>
+                        <span className="block font-mono text-[10px] text-faint/70">{userId(u)}</span>
                       </span>
                     </button>
                   </Td>
@@ -183,6 +184,7 @@ function UserDetail({ user, onClose, onChanged }: { user: Row; onClose: () => vo
           <Field label="Name"><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name" /></Field>
           <Field label="Email"><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
         </section>
+        <div className="text-xs text-faint">ID <span className="select-all font-mono text-muted">{id}</span></div>
 
         <UserGrants userId={id} />
       </div>

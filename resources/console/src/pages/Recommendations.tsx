@@ -26,14 +26,14 @@ export default function Recommendations() {
 
   return (
     <>
-      <PageHeader title="Recommendations" description="Least-privilege and anomaly findings — unused grants, over-privileged subjects." />
+      <PageHeader title="Recommendations" description="Least-privilege findings: standing grants that look risky — sprawling direct permission grants that should be roles, and stale/never-used grants." />
 
       {res.loading ? (
         <Loading />
       ) : res.error ? (
         <Card><ErrorState message={res.error} onRetry={res.reload} /></Card>
       ) : rows.length === 0 ? (
-        <Card><EmptyState title="No recommendations" hint="Access looks well-scoped, or none have been computed yet." /></Card>
+        <Card><EmptyState title="No recommendations — access looks well-scoped" hint="Empty is good: nobody is carrying sprawling direct or stale grants. (The super-admin now holds the iam-admin role instead of many direct grants, so there's nothing to flag.)" /></Card>
       ) : (
         <div className="space-y-4">
           {rows.map((r, i) => {
