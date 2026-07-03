@@ -28,7 +28,7 @@ export default function Sessions() {
 
   return (
     <>
-      <PageHeader title="Sessions" description="Active authentication sessions. Revoke to force re-authentication." />
+      <PageHeader title="Sessions" description="Server-side IdP sessions. Revoke to force the operator out on their next request. IP/device are stored as privacy hashes — the Device tag distinguishes devices without deanonymizing." />
 
       <Card>
         {list.loading && list.items.length === 0 ? (
@@ -38,15 +38,25 @@ export default function Sessions() {
         ) : list.items.length === 0 ? (
           <EmptyState title="No active sessions" />
         ) : (
-          <Table head={<><Th>Session</Th><Th>Subject</Th><Th>IP / Device</Th><Th>Last active</Th><Th /></>}>
+          <Table head={<><Th>Session</Th><Th>Subject</Th><Th>Assurance</Th><Th>Device</Th><Th>Last active</Th><Th /></>}>
             {list.items.map((s, i) => {
               const id = String(pick(s, ['id', 'session_id', 'uuid']) ?? i)
               const revoked = asText(pick(s, ['revoked_at', 'revoked'])) !== '—'
+              const aal = asText(pick(s, ['aal']))
+              const stepUp = pick(s, ['step_up_at'])
+              const deviceTag = asText(pick(s, ['device_tag']))
               return (
                 <tr key={id} className="hover:bg-surface-2/60">
                   <Td className="font-mono text-xs text-muted">{id}</Td>
-                  <Td>{asText(pick(s, ['user_id', 'subject_id', 'subject', 'user']))}</Td>
-                  <Td className="text-muted">{asText(pick(s, ['ip', 'ip_address']))} · {asText(pick(s, ['user_agent', 'device', 'platform']))}</Td>
+                  <Td className="font-mono text-xs">{asText(pick(s, ['user_id', 'subject_id', 'subject', 'user']))}</Td>
+                  <Td>
+                    <div className="flex items-center gap-1.5">
+                      {aal !== '—' ? <Badge tone={aal.toLowerCase() === 'aal1' ? 'neutral' : 'ok'}>{aal.toUpperCase()}</Badge> : <span className="text-faint">—</span>}
+                      {stepUp != null && <span className="text-xs text-ok" title="stepped up">↑</span>}
+                    </div>
+                  </Td>
+                  {/* IP/UA are stored only as salted hashes (privacy); we show a non-reversible device tag. */}
+                  <Td className="font-mono text-xs text-muted">{deviceTag}</Td>
                   <Td className="text-muted">{formatDate(pick(s, ['last_active_at', 'last_used_at', 'updated_at', 'created_at']))}</Td>
                   <Td className="text-right">
                     {revoked ? (
