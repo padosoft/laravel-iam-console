@@ -17,6 +17,8 @@ const SCREENS = [
   'Dashboard',
   'Users',
   'Roles & Grants',
+  'Organizations',
+  'Groups',
   'Sessions',
   'Audit log',
   'Access reviews',
@@ -98,6 +100,60 @@ test('login → every screen → create user → assign a permission', async ({ 
     page.getByRole('button', { name: 'Commit grant' }).click(),
   ])
   expect(commitResp.ok()).toBeTruthy()
+
+  // 4b) Multi-tenancy: create an org + a group in it; then a SECOND org with a group of the SAME key.
+  // Deleting one must hit the right group (groups are addressed by id, not the org-scoped key). Unique
+  // per-run names keep the test idempotent across Playwright retries (which don't re-seed the DB).
+  const s = Date.now()
+  const org1 = `E2E Org ${s}`
+  const org2 = `E2E Org Two ${s}`
+  const teamKey = `e2e-team-${s}` // shared across the two orgs (same-key coexistence)
+  const team1 = `E2E Team ${s}`
+  const team2 = `E2E Team Two ${s}`
+
+  async function createOrg(name: string) {
+    await page.getByRole('link', { name: 'Organizations', exact: true }).click()
+    await page.getByRole('button', { name: 'New organization' }).click()
+    await page.getByPlaceholder('acme', { exact: true }).fill(name.toLowerCase().replace(/[^a-z0-9]+/g, '-'))
+    await page.getByPlaceholder('Acme Inc', { exact: true }).fill(name)
+    const [r] = await Promise.all([
+      page.waitForResponse((x) => /\/organizations$/.test(x.url()) && x.request().method() === 'POST'),
+      page.getByRole('button', { name: 'Create', exact: true }).click(),
+    ])
+    expect(r.status()).toBe(201)
+  }
+
+  async function createGroup(orgName: string, groupName: string) {
+    await page.getByRole('link', { name: 'Groups', exact: true }).click()
+    await page.getByRole('button', { name: 'New group' }).click()
+    await page.getByLabel('Group organization').fill(orgName)
+    // The option label also carries the org key as a hint, so match by substring (the fill already
+    // filtered the list to this org) rather than exact.
+    await page.getByRole('option', { name: orgName }).first().click()
+    await page.getByPlaceholder('engineering', { exact: true }).fill(teamKey)
+    await page.getByPlaceholder('Engineering', { exact: true }).fill(groupName)
+    const [r] = await Promise.all([
+      page.waitForResponse((x) => /\/groups$/.test(x.url()) && x.request().method() === 'POST'),
+      page.getByRole('button', { name: 'Create', exact: true }).click(),
+    ])
+    expect(r.status()).toBe(201)
+  }
+
+  await createOrg(org1)
+  await createGroup(org1, team1)
+  await createOrg(org2)
+  await createGroup(org2, team2)
+
+  // Both same-key groups coexist.
+  await expect(page.getByRole('cell', { name: teamKey, exact: true })).toHaveCount(2)
+
+  // Delete the SECOND org's group; the first (same key, other org) must survive — proves id-addressing.
+  await Promise.all([
+    page.waitForResponse((x) => /\/groups\/[^/]+$/.test(x.url()) && x.request().method() === 'DELETE'),
+    page.locator('tr', { hasText: team2 }).getByRole('button', { name: 'Delete' }).click(),
+  ])
+  await expect(page.getByText(team2)).toHaveCount(0)
+  await expect(page.getByText(team1)).toBeVisible()
 
   // 5) Audit log (auth stream by default) shows the login event.
   await page.getByRole('link', { name: 'Audit log', exact: true }).click()

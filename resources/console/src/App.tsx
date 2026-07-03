@@ -4,6 +4,8 @@ import { ToastProvider } from './components/Toast'
 import Dashboard from './pages/Dashboard'
 import Users from './pages/Users'
 import RolesGrants from './pages/RolesGrants'
+import Organizations from './pages/Organizations'
+import Groups from './pages/Groups'
 import Sessions from './pages/Sessions'
 import AuditLog from './pages/AuditLog'
 import DecisionPlayground from './pages/DecisionPlayground'
@@ -22,6 +24,8 @@ export default function App() {
             <Route index element={<Dashboard />} />
             <Route path="users" element={<Users />} />
             <Route path="grants" element={<RolesGrants />} />
+            <Route path="organizations" element={<Organizations />} />
+            <Route path="groups" element={<Groups />} />
             <Route path="sessions" element={<Sessions />} />
             <Route path="audit" element={<AuditLog />} />
             <Route path="access-reviews" element={<AccessReviews />} />

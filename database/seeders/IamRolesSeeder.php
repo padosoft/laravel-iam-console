@@ -31,7 +31,8 @@ class IamRolesSeeder extends Seeder
         'audit.read', 'decisions.check', 'decisions.explain', 'directory.manage', 'directory.read',
         'federated.manage', 'federated.read', 'grants.manage', 'groups.manage', 'groups.read',
         'least_privilege.view', 'manifests.apply', 'manifests.approve', 'manifests.read', 'manifests.submit',
-        'metrics.read', 'policies.read', 'relations.manage', 'sessions.manage', 'sessions.read',
+        'metrics.read', 'organizations.manage', 'organizations.read', 'policies.read',
+        'relations.manage', 'sessions.manage', 'sessions.read',
         'users.manage', 'users.read', 'webhooks.manage', 'webhooks.read',
     ];
 
