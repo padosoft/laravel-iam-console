@@ -89,4 +89,17 @@ test('login → every screen → create user → assign a permission', async ({ 
     page.getByRole('button', { name: 'Commit grant' }).click(),
   ])
   expect(commitResp.ok()).toBeTruthy()
+
+  // 5) Audit log (auth stream by default) shows the login event.
+  await page.getByRole('link', { name: 'Audit log', exact: true }).click()
+  await expect(page.getByText('auth.login.succeeded').first()).toBeVisible()
+
+  // 6) Access review: create → open → review. The subject resolves to a name, not a raw ULID.
+  await page.getByRole('link', { name: 'Access reviews', exact: true }).click()
+  await page.getByRole('button', { name: 'New campaign' }).click()
+  await page.getByPlaceholder('Q3 access certification').fill('E2E review')
+  await page.getByRole('button', { name: 'Create', exact: true }).click()
+  await page.getByRole('button', { name: 'Open' }).first().click()
+  await page.getByRole('button', { name: 'Review' }).first().click()
+  await expect(page.getByText('Super Admin')).toBeVisible()
 })

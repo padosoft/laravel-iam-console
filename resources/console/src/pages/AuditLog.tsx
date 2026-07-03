@@ -4,12 +4,21 @@ import { useCursorList } from '../hooks/useApi'
 import { asText, formatDate, pick } from '../lib/format'
 import PageHeader from '../components/PageHeader'
 import { useToast } from '../components/toast-context'
-import { Badge, Button, Card, EmptyState, ErrorState, KeyValues, Loading, Modal, Table, Td, Th } from '../components/ui'
+import { Badge, Button, Card, EmptyState, ErrorState, KeyValues, Loading, Modal, Select, Table, Td, Th } from '../components/ui'
 
 type Row = Record<string, unknown>
 
+// Audit is written to per-purpose streams; the endpoint filters by one at a time.
+const STREAMS: Array<{ value: string; label: string }> = [
+  { value: 'auth', label: 'Auth (login, logout, step-up)' },
+  { value: 'admin', label: 'Admin actions' },
+  { value: 'governance', label: 'Governance (grants, reviews)' },
+  { value: 'global', label: 'Global' },
+]
+
 export default function AuditLog() {
-  const list = useCursorList<Row>('audit/events', {}, 30)
+  const [stream, setStream] = useState('auth')
+  const list = useCursorList<Row>('audit/events', { stream }, 30)
   const toast = useToast()
   const [verifying, setVerifying] = useState(false)
   const [detail, setDetail] = useState<Row | null>(null)
@@ -17,12 +26,12 @@ export default function AuditLog() {
   async function verifyChain() {
     setVerifying(true)
     try {
-      const res = await apiPost<Record<string, unknown>>('audit/verify-chain')
+      const res = await apiPost<Record<string, unknown>>(`audit/verify-chain?stream=${encodeURIComponent(stream)}`)
       const ok = res?.valid ?? res?.verified ?? res?.intact
       if (ok === false) {
         toast.error('Audit chain verification FAILED — possible tampering.')
       } else {
-        toast.success('Audit hash-chain verified — intact.')
+        toast.success(`Audit hash-chain verified (${stream}) — intact.`)
       }
     } catch (e) {
       toast.error(errorMessage(e))
@@ -35,8 +44,17 @@ export default function AuditLog() {
     <>
       <PageHeader
         title="Audit log"
-        description="Tamper-evident event stream. Verify the hash-chain to prove integrity."
-        actions={<Button variant="primary" loading={verifying} onClick={verifyChain}>Verify chain</Button>}
+        description="Tamper-evident event stream. Switch streams to see auth, admin or governance events; verify the hash-chain to prove integrity."
+        actions={
+          <div className="flex items-center gap-2">
+            <div className="w-56">
+              <Select value={stream} onChange={(e) => setStream(e.target.value)} aria-label="Audit stream">
+                {STREAMS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+              </Select>
+            </div>
+            <Button variant="primary" loading={verifying} onClick={verifyChain}>Verify chain</Button>
+          </div>
+        }
       />
 
       <Card>
@@ -45,7 +63,7 @@ export default function AuditLog() {
         ) : list.error ? (
           <ErrorState message={list.error} onRetry={list.reload} />
         ) : list.items.length === 0 ? (
-          <EmptyState title="No audit events" />
+          <EmptyState title="No events in this stream" hint="Try another stream." />
         ) : (
           <Table head={<><Th>Event</Th><Th>Actor</Th><Th>Target</Th><Th>When</Th><Th /></>}>
             {list.items.map((e, i) => {
@@ -53,8 +71,8 @@ export default function AuditLog() {
               return (
                 <tr key={id} className="hover:bg-surface-2/60">
                   <Td><Badge tone="info">{asText(pick(e, ['event_type', 'type', 'action', 'name']))}</Badge></Td>
-                  <Td className="text-muted">{asText(pick(e, ['actor', 'actor_id', 'causer', 'user_id', 'subject_id']))}</Td>
-                  <Td className="text-muted">{asText(pick(e, ['target', 'target_id', 'resource', 'object']))}</Td>
+                  <Td className="font-mono text-xs text-muted">{asText(pick(e, ['actor_user_id', 'actor', 'actor_id', 'causer']))}</Td>
+                  <Td className="font-mono text-xs text-muted">{asText(pick(e, ['target_id', 'target', 'resource', 'object']))}</Td>
                   <Td className="text-muted">{formatDate(pick(e, ['occurred_at', 'created_at', 'timestamp', 'ts']))}</Td>
                   <Td className="text-right"><Button variant="ghost" onClick={() => setDetail(e)}>View</Button></Td>
                 </tr>

@@ -1,7 +1,7 @@
-import { useState } from 'react'
-import { apiGet, apiPost, errorMessage } from '../lib/api'
-import { useCursorList, useResource } from '../hooks/useApi'
-import { asText, formatDate, pick } from '../lib/format'
+import { useCallback, useEffect, useState } from 'react'
+import { apiGet, apiGetPage, apiPost, errorMessage, type Page } from '../lib/api'
+import { useCursorList } from '../hooks/useApi'
+import { asText, cx, formatDate, pick } from '../lib/format'
 import PageHeader from '../components/PageHeader'
 import { useToast } from '../components/toast-context'
 import { Badge, Button, Card, EmptyState, ErrorState, Field, Input, Loading, Modal, Table, Td, Th } from '../components/ui'
@@ -46,7 +46,7 @@ export default function AccessReviews() {
     <>
       <PageHeader
         title="Access reviews"
-        description="Certification campaigns. Reviewers certify or revoke each access item."
+        description="Certification campaigns: a reviewer confirms (certify) or removes (revoke) each standing grant, so you can prove every privilege is still justified."
         actions={<Button variant="primary" onClick={() => setCreating(true)}>New campaign</Button>}
       />
 
@@ -56,7 +56,7 @@ export default function AccessReviews() {
         ) : list.error ? (
           <ErrorState message={list.error} onRetry={list.reload} />
         ) : list.items.length === 0 ? (
-          <EmptyState title="No campaigns yet" hint="Create a campaign to start certifying access." />
+          <EmptyState title="No campaigns yet" hint="Create a campaign, open it to pull in the current grants, then certify or revoke each one." />
         ) : (
           <Table head={<><Th>Campaign</Th><Th>Status</Th><Th>Created</Th><Th /></>}>
             {list.items.map((c) => {
@@ -78,7 +78,7 @@ export default function AccessReviews() {
                   <Td className="text-muted">{formatDate(pick(c, ['created_at', 'opened_at']))}</Td>
                   <Td className="text-right">
                     <div className="flex justify-end gap-2">
-                      <Button variant="ghost" onClick={() => setSelected(c)}>Items</Button>
+                      <Button variant="ghost" onClick={() => setSelected(c)}>Review</Button>
                       {canOpen && <Button variant="secondary" loading={busy === id + 'open'} onClick={() => act(c, 'open')}>Open</Button>}
                       {canClose && <Button variant="secondary" loading={busy === id + 'close'} onClick={() => act(c, 'close')}>Close</Button>}
                       {canCancel && <Button variant="ghost" loading={busy === id + 'cancel'} onClick={() => act(c, 'cancel')}>Cancel</Button>}
@@ -96,24 +96,79 @@ export default function AccessReviews() {
         )}
       </Card>
 
-      {selected && <CampaignItems campaign={selected} onClose={() => setSelected(null)} />}
+      {selected && <CampaignReview campaign={selected} onClose={() => setSelected(null)} />}
       {creating && <CreateCampaign onClose={() => setCreating(false)} onCreated={list.reload} />}
     </>
   )
 }
 
-function CampaignItems({ campaign, onClose }: { campaign: Row; onClose: () => void }) {
+/* ── Campaign review: items grouped by subject → application, subjects resolved to name/email ── */
+interface Person {
+  name: string
+  email: string
+}
+
+function CampaignReview({ campaign, onClose }: { campaign: Row; onClose: () => void }) {
   const id = campaignId(campaign)
   const toast = useToast()
-  const items = useResource<Row[]>(() => apiGet(`access-reviews/campaigns/${encodeURIComponent(id)}/items`), [id])
+  const [items, setItems] = useState<Row[]>([])
+  const [people, setPeople] = useState<Map<string, Person>>(new Map())
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      // Pull every item (grouping is client-side; the endpoint only cursor-paginates).
+      const all: Row[] = []
+      let cursor: string | null = null
+      do {
+        const page: Page<Row> = await apiGetPage<Row>(`access-reviews/campaigns/${encodeURIComponent(id)}/items`, { cursor, limit: 100 })
+        all.push(...page.items)
+        cursor = page.nextCursor
+      } while (cursor)
+      setItems(all)
+
+      // Resolve distinct user subjects to name/email (one call per distinct user, deduped).
+      const userIds = [
+        ...new Set(
+          all
+            .filter((it) => asText(pick(it, ['subject_type'])) === 'user')
+            .map((it) => String(pick(it, ['subject_id']) ?? ''))
+            .filter((s) => s !== ''),
+        ),
+      ]
+      const map = new Map<string, Person>()
+      await Promise.all(
+        userIds.map(async (uid) => {
+          try {
+            const u = await apiGet<Record<string, unknown>>(`users/${encodeURIComponent(uid)}`)
+            map.set(uid, { name: asText(pick(u, ['name'])), email: asText(pick(u, ['email'])) })
+          } catch {
+            /* leave unresolved → falls back to the id */
+          }
+        }),
+      )
+      setPeople(map)
+    } catch (e) {
+      setError(errorMessage(e))
+    } finally {
+      setLoading(false)
+    }
+  }, [id])
+
+  useEffect(() => {
+    void load()
+  }, [load])
 
   async function decide(itemId: string, action: 'certify' | 'revoke') {
     setBusy(itemId + action)
     try {
       await apiPost(`access-reviews/items/${encodeURIComponent(itemId)}/${action}`)
-      toast.success(`Item ${action === 'certify' ? 'certified' : 'revoked'}.`)
-      items.reload()
+      toast.success(`Access ${action === 'certify' ? 'certified' : 'revoked'}.`)
+      await load()
     } catch (e) {
       toast.error(errorMessage(e))
     } finally {
@@ -121,51 +176,154 @@ function CampaignItems({ campaign, onClose }: { campaign: Row; onClose: () => vo
     }
   }
 
-  const rows = Array.isArray(items.data) ? items.data : []
+  // Group items by subject, then by application.
+  const bySubject = new Map<string, Row[]>()
+  for (const it of items) {
+    const key = `${asText(pick(it, ['subject_type']))}:${String(pick(it, ['subject_id']) ?? '')}`
+    if (!bySubject.has(key)) bySubject.set(key, [])
+    bySubject.get(key)!.push(it)
+  }
 
   return (
-    <Modal open wide title={asText(pick(campaign, ['name', 'title']) ?? 'Campaign items')} onClose={onClose}>
-      {items.loading ? (
+    <Modal open wide title={`Review — ${asText(pick(campaign, ['name', 'title']) ?? 'campaign')}`} onClose={onClose}>
+      {loading ? (
         <Loading />
-      ) : items.error ? (
-        <ErrorState message={items.error} onRetry={items.reload} />
-      ) : rows.length === 0 ? (
-        <EmptyState title="No items in this campaign" />
+      ) : error ? (
+        <ErrorState message={error} onRetry={load} />
+      ) : items.length === 0 ? (
+        <EmptyState title="No items in this campaign" hint="Open the campaign to pull in the current grants." />
       ) : (
-        <Table head={<><Th>Subject</Th><Th>Access</Th><Th>Decision</Th><Th /></>}>
-          {rows.map((it, i) => {
-            const itemId = String(pick(it, ['id', 'item_id']) ?? i)
-            const decision = asText(pick(it, ['decision', 'status', 'state']))
-            return (
-              <tr key={itemId}>
-                <Td>{asText(pick(it, ['subject', 'subject_id', 'user_id', 'user']))}</Td>
-                <Td className="font-mono text-xs">{asText(pick(it, ['privilege_key', 'permission', 'role', 'access', 'grant']))}</Td>
-                <Td>{decision === '—' ? <Badge tone="warn">pending</Badge> : <Badge tone="neutral">{decision}</Badge>}</Td>
-                <Td className="text-right">
-                  <div className="flex justify-end gap-2">
-                    <Button variant="primary" loading={busy === itemId + 'certify'} onClick={() => decide(itemId, 'certify')}>Certify</Button>
-                    <Button variant="danger" loading={busy === itemId + 'revoke'} onClick={() => decide(itemId, 'revoke')}>Revoke</Button>
-                  </div>
-                </Td>
-              </tr>
-            )
-          })}
-        </Table>
+        <div className="space-y-5">
+          <p className="text-sm text-muted">
+            {bySubject.size} subject{bySubject.size === 1 ? '' : 's'} · {items.length} access{items.length === 1 ? '' : 'es'} to review.
+            Certify keeps the grant; revoke removes it.
+          </p>
+          {[...bySubject.entries()].map(([subjectKey, subjectItems]) => (
+            <SubjectBlock
+              key={subjectKey}
+              subjectKey={subjectKey}
+              items={subjectItems}
+              person={people.get(subjectKey.split(':').slice(1).join(':'))}
+              busy={busy}
+              onDecide={decide}
+            />
+          ))}
+        </div>
       )}
     </Modal>
   )
 }
 
+function SubjectBlock({
+  subjectKey,
+  items,
+  person,
+  busy,
+  onDecide,
+}: {
+  subjectKey: string
+  items: Row[]
+  person?: Person
+  busy: string | null
+  onDecide: (itemId: string, action: 'certify' | 'revoke') => void
+}) {
+  const [subjectType, subjectId] = [subjectKey.split(':')[0], subjectKey.split(':').slice(1).join(':')]
+  const title = person && person.name !== '—' ? person.name : person && person.email !== '—' ? person.email : subjectId
+  const subtitle = person && person.email !== '—' && person.name !== '—' ? person.email : `${subjectType} · ${subjectId}`
+
+  // group by application
+  const byApp = new Map<string, Row[]>()
+  for (const it of items) {
+    const app = asText(pick(it, ['application_key']))
+    const key = app === '—' ? 'Global' : app
+    if (!byApp.has(key)) byApp.set(key, [])
+    byApp.get(key)!.push(it)
+  }
+
+  return (
+    <div className="rounded-lg border border-line">
+      <div className="flex items-center gap-3 border-b border-line bg-surface-2/50 px-4 py-2.5">
+        <div>
+          <div className="font-medium text-ink">{title}</div>
+          <div className="text-xs text-faint">{subtitle}</div>
+        </div>
+        <Badge tone="neutral">{items.length} access{items.length === 1 ? '' : 'es'}</Badge>
+      </div>
+      <div className="divide-y divide-line">
+        {[...byApp.entries()].map(([app, appItems]) => (
+          <div key={app} className="px-4 py-2">
+            <div className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-faint">{app}</div>
+            <div className="space-y-1.5">
+              {appItems.map((it, i) => (
+                <ItemRow key={String(pick(it, ['id']) ?? i)} item={it} busy={busy} onDecide={onDecide} />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function ItemRow({ item, busy, onDecide }: { item: Row; busy: string | null; onDecide: (itemId: string, action: 'certify' | 'revoke') => void }) {
+  const itemId = String(pick(item, ['id']) ?? '')
+  const decision = asText(pick(item, ['decision', 'status']))
+  const isRole = asText(pick(item, ['privilege_type'])) === 'role'
+  const key = asText(pick(item, ['privilege_key']))
+  const deny = asText(pick(item, ['effect'])) === 'deny'
+  const signals = pick(item, ['signals']) as Record<string, unknown> | undefined
+  const decided = decision !== 'pending' && decision !== '—'
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className={cx('inline-flex items-center gap-1.5 rounded-md border px-2 py-1 font-mono text-xs', deny ? 'border-danger/30 bg-danger/10 text-danger' : 'border-line-strong bg-surface-2 text-ink/90')}>
+        {isRole && <span className="rounded bg-accent-soft px-1 text-[10px] font-semibold uppercase text-accent-2">role</span>}
+        {key}
+        {deny && <span className="text-[10px] uppercase">deny</span>}
+      </span>
+      <SignalHints signals={signals} />
+      <div className="ml-auto flex items-center gap-2">
+        {decided ? (
+          <Badge tone={decision === 'revoked' ? 'danger' : 'ok'}>{decision}</Badge>
+        ) : (
+          <>
+            <Button variant="primary" loading={busy === itemId + 'certify'} onClick={() => onDecide(itemId, 'certify')}>Certify</Button>
+            <Button variant="danger" loading={busy === itemId + 'revoke'} onClick={() => onDecide(itemId, 'revoke')}>Revoke</Button>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function SignalHints({ signals }: { signals?: Record<string, unknown> }) {
+  if (!signals || typeof signals !== 'object') return null
+  const hints: string[] = []
+  if (signals.never_used === true) hints.push('never used')
+  else if (signals.dormant === true) hints.push('dormant')
+  if (signals.privileged === true) hints.push('privileged')
+  if (signals.subject_disabled === true) hints.push('subject disabled')
+  if (hints.length === 0) return null
+  return (
+    <span className="flex flex-wrap gap-1">
+      {hints.map((h) => <Badge key={h} tone="warn">{h}</Badge>)}
+    </span>
+  )
+}
+
+/* ── Create campaign (with a light scope) ─────────────────────────────── */
 function CreateCampaign({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
   const toast = useToast()
   const [name, setName] = useState('')
+  const [onlyPrivileged, setOnlyPrivileged] = useState(false)
   const [busy, setBusy] = useState(false)
 
   async function submit() {
     setBusy(true)
     try {
-      await apiPost('access-reviews/campaigns', { name })
-      toast.success('Campaign created.')
+      const scope = onlyPrivileged ? { scope_json: { only_privileged: true } } : {}
+      await apiPost('access-reviews/campaigns', { name, ...scope })
+      toast.success('Campaign created — open it to pull in the grants.')
       onCreated()
       onClose()
     } catch (e) {
@@ -182,9 +340,16 @@ function CreateCampaign({ onClose, onCreated }: { onClose: () => void; onCreated
       onClose={onClose}
       footer={<><Button variant="ghost" onClick={onClose}>Cancel</Button><Button variant="primary" loading={busy} disabled={!name.trim()} onClick={submit}>Create</Button></>}
     >
-      <Field label="Campaign name">
-        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Q3 access certification" />
-      </Field>
+      <div className="space-y-4">
+        <Field label="Campaign name">
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Q3 access certification" />
+        </Field>
+        <label className="flex items-center gap-2 text-sm text-ink">
+          <input type="checkbox" checked={onlyPrivileged} onChange={(e) => setOnlyPrivileged(e.target.checked)} />
+          Only privileged grants
+        </label>
+        <p className="text-xs text-faint">An empty scope reviews every active grant. Open the campaign after creating it to materialize the items.</p>
+      </div>
     </Modal>
   )
 }
