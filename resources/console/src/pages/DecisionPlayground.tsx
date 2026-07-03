@@ -6,7 +6,7 @@ import PageHeader from '../components/PageHeader'
 import PrivilegePicker from '../components/PrivilegePicker'
 import SubjectPicker, { type SubjectType } from '../components/SubjectPicker'
 import { useToast } from '../components/toast-context'
-import { Badge, Button, Card, CardHeader, EmptyState, Field, KeyValues, Spinner } from '../components/ui'
+import { Badge, Button, Card, CardHeader, EmptyState, Field, Input, KeyValues, Spinner } from '../components/ui'
 
 interface Decision {
   allowed?: boolean
@@ -25,11 +25,13 @@ export default function DecisionPlayground() {
     subjectType: 'user',
     subjectId: '',
     permission: '',
-    organization: '',
     application: '',
   })
   const [result, setResult] = useState<Decision | null>(null)
   const [busy, setBusy] = useState<'check' | 'explain' | null>(null)
+  const [ai, setAi] = useState<Record<string, unknown> | null>(null)
+  const [aiBusy, setAiBusy] = useState(false)
+  const [question, setQuestion] = useState('')
 
   const ready = form.subjectId.trim() && form.permission.trim()
 
@@ -37,7 +39,6 @@ export default function DecisionPlayground() {
     return {
       subject: { type: form.subjectType, id: form.subjectId },
       permission: form.permission,
-      organization: form.organization || null,
       application: form.application || null,
     }
   }
@@ -52,6 +53,20 @@ export default function DecisionPlayground() {
       toast.error(errorMessage(e))
     } finally {
       setBusy(null)
+    }
+  }
+
+  async function aiExplain() {
+    setAiBusy(true)
+    setAi(null)
+    try {
+      // Host route (not the Admin API): runs the PDP decision then explains it via the AI module.
+      const res = await apiPost<Record<string, unknown>>('/api/console/ai-explain', { ...body(), question: question || undefined })
+      setAi(res ?? {})
+    } catch (e) {
+      toast.error(errorMessage(e))
+    } finally {
+      setAiBusy(false)
     }
   }
 
@@ -82,9 +97,14 @@ export default function DecisionPlayground() {
               <ApplicationPicker value={form.application} onChange={(a) => setForm({ ...form, application: a })} ariaLabel="Decision application" />
             </Field>
 
-            <div className="flex gap-2 pt-1">
+            <Field label="Question for AI" hint="optional — focus the AI explanation">
+              <Input value={question} onChange={(e) => setQuestion(e.target.value)} placeholder="e.g. why is this denied?" />
+            </Field>
+
+            <div className="flex flex-wrap gap-2 pt-1">
               <Button variant="secondary" loading={busy === 'check'} disabled={!ready} onClick={() => run('check')}>Check</Button>
-              <Button variant="primary" loading={busy === 'explain'} disabled={!ready} onClick={() => run('explain')}>Explain</Button>
+              <Button variant="secondary" loading={busy === 'explain'} disabled={!ready} onClick={() => run('explain')}>Explain</Button>
+              <Button variant="primary" loading={aiBusy} disabled={!ready} onClick={aiExplain}>Explain with AI</Button>
             </div>
           </div>
         </Card>
@@ -144,6 +164,29 @@ export default function DecisionPlayground() {
           </div>
         </Card>
       </div>
+
+      {(aiBusy || ai) && (
+        <Card className="mt-5">
+          <CardHeader
+            title="AI explanation"
+            subtitle="Advisory only — the PDP decides; the AI re-phrases its reasoning, never invents identifiers."
+            actions={ai ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge tone={ai.ai_used ? 'accent' : 'neutral'}>{ai.ai_used ? `AI · ${asText(ai.provider)}` : 'deterministic'}</Badge>
+                {ai.guard_passed === false && <Badge tone="danger">guard blocked</Badge>}
+                {ai.redacted === true && <Badge tone="warn">redacted</Badge>}
+              </div>
+            ) : undefined}
+          />
+          <div className="p-5">
+            {aiBusy ? (
+              <div className="flex items-center gap-2 text-sm text-muted"><Spinner className="size-4" /> Asking the AI…</div>
+            ) : (
+              <p className="whitespace-pre-wrap text-sm text-ink/90">{asText(ai ? ai.text : '')}</p>
+            )}
+          </div>
+        </Card>
+      )}
     </>
   )
 }
