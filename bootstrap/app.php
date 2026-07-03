@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureIamSessionActive;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -12,7 +13,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Bridges Fortify auth to the IdP session registry: a revoked/expired iam_sid logs the operator out.
+        $middleware->alias(['iam.session_active' => EnsureIamSessionActive::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
