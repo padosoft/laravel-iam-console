@@ -27,7 +27,7 @@ Route::get('/', fn () => redirect('/console'));
 |
 */
 Route::prefix(config('iam.admin.route_prefix', 'api/iam/v1'))
-    ->middleware(['auth', 'iam.admin_auth', 'iam.idempotency'])
+    ->middleware(['auth', 'iam.session_active', 'iam.admin_auth', 'iam.idempotency'])
     ->group(base_path('vendor/padosoft/laravel-iam-server/routes/admin.php'));
 
 /*
@@ -35,7 +35,7 @@ Route::prefix(config('iam.admin.route_prefix', 'api/iam/v1'))
 | Console app endpoints (session-authed, not part of the IAM Admin API)
 |--------------------------------------------------------------------------
 */
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'iam.session_active'])->group(function () {
     // Create a local user. The IAM Admin API does NOT create users (users come from the app's own
     // auth); the console owns user creation, then grants are assigned via the Admin API policy wizard.
     // Requires the operator to be permitted to manage users (PDP), mirroring the Admin API surface.
