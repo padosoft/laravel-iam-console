@@ -61,6 +61,9 @@ class FortifyServiceProvider extends ServiceProvider
         Fortify::requestPasswordResetLinkView(fn () => view('auth.forgot-password'));
         Fortify::resetPasswordView(fn (Request $request) => view('auth.reset-password', ['request' => $request]));
 
+        // TOTP two-factor challenge (only reachable when IAM_CONSOLE_2FA enables the Fortify 2FA feature).
+        Fortify::twoFactorChallengeView(fn () => view('auth.two-factor-challenge'));
+
         // Fortify does not throttle the reset-link request/update routes by default; cap them to blunt
         // reset-email spam and token probing (6/min per IP). Applied once routes are registered.
         $this->app->booted(function (): void {

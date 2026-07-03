@@ -25,6 +25,7 @@ const SCREENS = [
   'Recommendations',
   'Applications',
   'Decision playground',
+  'Security',
 ]
 
 test('login → every screen → create user → assign a permission', async ({ page }) => {

@@ -4,6 +4,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
+use Laravel\Fortify\Features;
 use Padosoft\Iam\Ai\Modules\AccessExplainer;
 use Padosoft\Iam\Contracts\Authorization\AuthorizationEngine;
 
@@ -43,6 +44,10 @@ Route::middleware(['auth', 'iam.session_active'])->group(function () {
         'id' => (string) $request->user()->getAuthIdentifier(),
         'name' => $request->user()->name,
         'email' => $request->user()->email,
+        // Two-factor: whether the operator has confirmed TOTP, and whether the console offers 2FA at all
+        // (IAM_CONSOLE_2FA). The SPA Security screen shows/hides itself on `console_2fa`.
+        'two_factor_enabled' => $request->user()->two_factor_confirmed_at !== null,
+        'console_2fa' => Features::canManageTwoFactorAuthentication(),
     ]));
 
     // Create a local user. The IAM Admin API does NOT create users (users come from the app's own

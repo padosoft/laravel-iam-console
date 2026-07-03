@@ -11,6 +11,7 @@ use Padosoft\Iam\Contracts\Authorization\AuthorizationEngine;
 use Padosoft\Iam\Domain\Audit\Models\AuditEvent;
 use Padosoft\Iam\Domain\Authorization\Models\Grant;
 use Padosoft\Iam\Domain\Identity\Models\Session as IamSession;
+use PragmaRX\Google2FA\Google2FA;
 use Tests\TestCase;
 
 class ConsoleTest extends TestCase
@@ -198,6 +199,35 @@ class ConsoleTest extends TestCase
         // ...so 20 more minutes (40 since login, but 20 since the touch) is still inside the idle window.
         $this->travel(20)->minutes();
         $this->getJson('/api/iam/v1/users')->assertStatus(403);
+    }
+
+    public function test_two_factor_can_be_enabled_confirmed_and_challenges_login(): void
+    {
+        // IAM_CONSOLE_2FA=true in phpunit.xml registers the Fortify 2FA feature + routes.
+        $user = User::factory()->create();
+        $this->actingAs($user);
+
+        // Enable → Fortify stores an (encrypted) secret + recovery codes, not yet confirmed.
+        $this->postJson('/user/two-factor-authentication')->assertOk();
+        $user->refresh();
+        $this->assertNotNull($user->two_factor_secret);
+        $this->assertNull($user->two_factor_confirmed_at);
+
+        // Confirm with a valid TOTP derived from the secret.
+        $secret = decrypt($user->two_factor_secret);
+        $code = app(Google2FA::class)->getCurrentOtp($secret);
+        $this->postJson('/user/confirmed-two-factor-authentication', ['code' => $code])->assertOk();
+        $this->assertNotNull($user->refresh()->two_factor_confirmed_at);
+
+        // whoami now reports 2FA enabled + that the console offers it.
+        $this->getJson('/api/user')->assertOk()
+            ->assertJsonPath('two_factor_enabled', true)
+            ->assertJsonPath('console_2fa', true);
+
+        // A fresh login is intercepted by the two-factor challenge instead of going straight to /console.
+        auth('web')->logout();
+        $this->post('/login', ['email' => $user->email, 'password' => 'password'])
+            ->assertRedirect('/two-factor-challenge');
     }
 
     public function test_whoami_returns_the_operator_identity(): void

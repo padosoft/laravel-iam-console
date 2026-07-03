@@ -36,6 +36,7 @@ const NAV: NavItem[] = [
   { to: '/recommendations', label: 'Recommendations', icon: <Icon path="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1V17h6v-.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2Z" /> },
   { to: '/applications', label: 'Applications', icon: <Icon path="M4 4h7v7H4V4Zm9 0h7v7h-7V4ZM4 13h7v7H4v-7Zm9 0h7v7h-7v-7Z" /> },
   { to: '/playground', label: 'Decision playground', icon: <Icon path="M12 2v4M12 18v4M2 12h4M18 12h4M6 6l2 2M16 16l2 2M18 6l-2 2M8 16l-2 2M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z" /> },
+  { to: '/security', label: 'Security', icon: <Icon path="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6l8-4Zm0 7v4m0 3h.01" /> },
 ]
 
 function NavItemLink({ item, onNavigate }: { item: NavItem; onNavigate?: () => void }) {
