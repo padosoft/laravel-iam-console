@@ -61,9 +61,14 @@ export default function SearchSelect({
     groups.get(g)!.push(o)
   }
 
+  function close() {
+    setOpen(false)
+    setQuery('')
+  }
+
   useEffect(() => {
     function onDoc(e: MouseEvent) {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false)
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) close()
     }
     document.addEventListener('mousedown', onDoc)
     return () => document.removeEventListener('mousedown', onDoc)
@@ -71,8 +76,7 @@ export default function SearchSelect({
 
   function pick(v: string) {
     onChange(v)
-    setOpen(false)
-    setQuery('')
+    close()
   }
 
   return (
@@ -81,11 +85,20 @@ export default function SearchSelect({
         <input
           id={id}
           aria-label={ariaLabel}
+          role="combobox"
+          aria-expanded={open}
+          aria-autocomplete="list"
           autoComplete="off"
           className={controlBase}
           placeholder={selected ? selected.label : placeholder}
           value={open ? query : selected?.label ?? ''}
-          onFocus={() => setOpen(true)}
+          onFocus={() => {
+            setQuery(selected?.label ?? '') // show the current selection instead of blanking on focus
+            setOpen(true)
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') close()
+          }}
           onChange={(e) => {
             setQuery(e.target.value)
             setOpen(true)
@@ -105,21 +118,23 @@ export default function SearchSelect({
       </div>
 
       {open && (
-        <div className="absolute z-30 mt-1 max-h-64 w-full overflow-auto rounded-lg border border-line bg-surface shadow-xl">
+        <div role="listbox" className="absolute z-30 mt-1 max-h-64 w-full overflow-auto rounded-lg border border-line bg-surface shadow-xl">
           {loading ? (
             <div className="px-3 py-2 text-sm text-muted">Loading…</div>
           ) : filtered.length === 0 ? (
             <div className="px-3 py-2 text-sm text-muted">{emptyText}</div>
           ) : (
             [...groups.entries()].map(([g, opts]) => (
-              <div key={g || '_'}>
+              <div key={`grp:${g}`}>
                 {g !== '' && (
                   <div className="sticky top-0 bg-surface-2 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-faint">{g}</div>
                 )}
                 {opts.map((o) => (
                   <button
                     type="button"
-                    key={o.value}
+                    role="option"
+                    aria-selected={o.value === value}
+                    key={`${g}:${o.value}`}
                     className={cx('flex w-full flex-col items-start px-3 py-2 text-left hover:bg-surface-2', o.value === value && 'bg-surface-2')}
                     onClick={() => pick(o.value)}
                   >

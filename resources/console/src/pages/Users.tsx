@@ -119,16 +119,28 @@ export default function Users() {
 function UserDetail({ user, onClose, onChanged }: { user: Row; onClose: () => void; onChanged: () => void }) {
   const toast = useToast()
   const id = userId(user)
-  const [name, setName] = useState(asText(pick(user, ['name'])) === '—' ? '' : String(pick(user, ['name']) ?? ''))
+  const [name, setName] = useState(String(pick(user, ['name']) ?? ''))
   const [email, setEmail] = useState(String(pick(user, ['email']) ?? ''))
+  const [baseline, setBaseline] = useState({ name: String(pick(user, ['name']) ?? ''), email: String(pick(user, ['email']) ?? '') })
   const [busy, setBusy] = useState<string | null>(null)
 
-  const dirty = name !== (String(pick(user, ['name']) ?? '')) || email !== (String(pick(user, ['email']) ?? ''))
+  const dirty = name !== baseline.name || email !== baseline.email
 
   async function saveProfile() {
     setBusy('save')
     try {
-      await apiPatch(`users/${encodeURIComponent(id)}`, { name, email })
+      // Send only the fields that actually changed.
+      const body: Record<string, string> = {}
+      if (name !== baseline.name) body.name = name
+      if (email !== baseline.email) body.email = email
+
+      const updated = await apiPatch<Record<string, unknown>>(`users/${encodeURIComponent(id)}`, body)
+      // Adopt the server's (normalized) values as the new baseline so the form no longer reads as dirty.
+      const savedName = String(pick(updated ?? {}, ['name']) ?? name)
+      const savedEmail = String(pick(updated ?? {}, ['email']) ?? email)
+      setName(savedName)
+      setEmail(savedEmail)
+      setBaseline({ name: savedName, email: savedEmail })
       toast.success('Profile updated.')
       onChanged()
     } catch (e) {

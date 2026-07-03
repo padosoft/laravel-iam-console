@@ -33,20 +33,32 @@ export default function UserPicker({
   const [loading, setLoading] = useState(false)
   const known = useRef<Map<string, SelectOption>>(new Map())
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const seq = useRef(0)
+  const mounted = useRef(true)
+
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+      clearTimeout(timer.current)
+    }
+  }, [])
 
   async function search(q: string): Promise<void> {
+    const my = ++seq.current // out-of-order guard: only the latest request applies its result
     setLoading(true)
     try {
       const page = await apiGetPage<Row>('users', { limit: 25, query: { q } })
+      if (!mounted.current || my !== seq.current) return
       const opts = page.items.map(toOption)
       for (const o of opts) known.current.set(o.value, o)
       // Keep the currently-selected user visible even if it's not in the latest results.
       const selected = value !== '' && !opts.some((o) => o.value === value) ? known.current.get(value) : undefined
       setOptions(selected ? [selected, ...opts] : opts)
     } catch {
-      setOptions([])
+      if (mounted.current && my === seq.current) setOptions([])
     } finally {
-      setLoading(false)
+      if (mounted.current && my === seq.current) setLoading(false)
     }
   }
 
