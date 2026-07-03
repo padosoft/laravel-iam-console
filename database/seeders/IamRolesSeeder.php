@@ -28,7 +28,7 @@ class IamRolesSeeder extends Seeder
      */
     private const PERMISSIONS = [
         'access_request.review', 'access_request.use', 'access_review.manage', 'applications.read',
-        'audit.read', 'decisions.check', 'decisions.explain', 'directory.manage', 'directory.read',
+        'audit.read', 'clients.manage', 'decisions.check', 'decisions.explain', 'directory.manage', 'directory.read',
         'federated.manage', 'federated.read', 'grants.manage', 'groups.manage', 'groups.read',
         'least_privilege.view', 'manifests.apply', 'manifests.approve', 'manifests.read', 'manifests.submit',
         'metrics.read', 'organizations.manage', 'organizations.read', 'policies.read',

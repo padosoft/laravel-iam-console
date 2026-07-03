@@ -204,4 +204,15 @@ test('login → every screen → create user → assign a permission', async ({ 
   ])
   await page.getByRole('button', { name: 'Review' }).first().click()
   await expect(page.getByText('Super Admin')).toBeVisible()
+  await page.locator('[role="dialog"]').getByRole('button', { name: 'Close' }).click() // close the review modal
+
+  // 7) The onboarded app's OAuth client secret can be rotated with zero downtime (new secret shown once).
+  await page.getByRole('link', { name: 'Applications', exact: true }).click()
+  await page.locator('tr', { hasText: appKey }).getByRole('button', { name: 'Details' }).click()
+  await expect(page.getByRole('button', { name: 'Rotate secret' })).toBeVisible()
+  await Promise.all([
+    page.waitForResponse((x) => /\/rotate-secret$/.test(x.url()) && x.request().method() === 'POST'),
+    page.getByRole('button', { name: 'Rotate secret' }).click(),
+  ])
+  await expect(page.getByText('new client_secret')).toBeVisible()
 })
