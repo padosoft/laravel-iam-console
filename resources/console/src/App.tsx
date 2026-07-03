@@ -12,6 +12,7 @@ import DecisionPlayground from './pages/DecisionPlayground'
 import AccessReviews from './pages/AccessReviews'
 import Recommendations from './pages/Recommendations'
 import Applications from './pages/Applications'
+import Security from './pages/Security'
 
 // The SPA is mounted at /console/ (see vite base + the host catch-all route),
 // so the router basename strips that prefix from client-side paths.
@@ -32,6 +33,7 @@ export default function App() {
             <Route path="recommendations" element={<Recommendations />} />
             <Route path="applications" element={<Applications />} />
             <Route path="playground" element={<DecisionPlayground />} />
+            <Route path="security" element={<Security />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>

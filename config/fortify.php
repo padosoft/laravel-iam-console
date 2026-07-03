@@ -143,7 +143,7 @@ return [
     |
     */
 
-    'features' => [
+    'features' => array_values(array_filter([
         // Public self-registration is DISABLED on the IAM control plane: accounts are created only by a
         // super-admin (console → Users → Create user). Do not re-enable Features::registration() here.
         // Features::registration(),
@@ -151,11 +151,13 @@ return [
         // Features::emailVerification(),
         Features::updateProfileInformation(),
         Features::updatePasswords(),
-        Features::twoFactorAuthentication([
+        // TOTP two-factor is OPTIONAL, gated by IAM_CONSOLE_2FA. When on, the console Security screen lets an
+        // operator enrol (QR + recovery codes) and the login flow challenges for a code. When off, the Fortify
+        // 2FA routes aren't registered and the Security screen hides itself.
+        env('IAM_CONSOLE_2FA', false) ? Features::twoFactorAuthentication([
             'confirm' => true,
-            'confirmPassword' => true,
-            // 'window' => 0,
-        ]),
-    ],
+            'confirmPassword' => false, // operator is already session-authed; keep the SPA enrol flow simple
+        ]) : null,
+    ])),
 
 ];

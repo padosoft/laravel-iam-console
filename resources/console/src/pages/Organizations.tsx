@@ -116,18 +116,19 @@ function OrgCreate({ onClose, onSaved }: { onClose: () => void; onSaved: () => v
 
 function OrgEdit({ org, onClose, onSaved }: { org: Row; onClose: () => void; onSaved: () => void }) {
   const toast = useToast()
-  const key = asText(pick(org, ['key']))
+  const key = asText(pick(org, ['key'])) // original handle — used to address the org in the PATCH path
   // Seed from the raw value (not asText) so a nameless org doesn't seed — and then persist — the '—' placeholder.
   const [name, setName] = useState(String(pick(org, ['name']) ?? ''))
+  const [newKey, setNewKey] = useState(key)
   const [status, setStatus] = useState(asText(pick(org, ['status'])) === 'suspended' ? 'suspended' : 'active')
   const [saving, setSaving] = useState(false)
-  const ready = name.trim() !== ''
+  const ready = name.trim() !== '' && newKey.trim() !== ''
 
   async function save() {
     if (!ready) return
     setSaving(true)
     try {
-      await apiPatch(`organizations/${encodeURIComponent(key)}`, { name, status })
+      await apiPatch(`organizations/${encodeURIComponent(key)}`, { name, status, key: newKey.trim() })
       toast.success('Organization updated.')
       onSaved()
     } catch (e) {
@@ -140,6 +141,9 @@ function OrgEdit({ org, onClose, onSaved }: { org: Row; onClose: () => void; onS
   return (
     <Modal open title={`Edit ${key}`} onClose={onClose}>
       <div className="space-y-4">
+        <Field label="Key" hint="stable handle. Safe internally (everything links by id), but update any external app/config that references this org by key.">
+          <Input value={newKey} onChange={(e) => setNewKey(e.target.value)} />
+        </Field>
         <Field label="Name"><Input value={name} onChange={(e) => setName(e.target.value)} /></Field>
         <Field label="Status">
           <Select value={status} onChange={(e) => setStatus(e.target.value)}>
