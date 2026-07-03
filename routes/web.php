@@ -88,7 +88,7 @@ Route::middleware(['auth', 'iam.session_active'])->group(function () {
         $advisory = app(AccessExplainer::class)->explain($decision, is_string($data['question'] ?? null) ? $data['question'] : '');
 
         return response()->json(['data' => $advisory->toArray()]);
-    });
+    })->middleware('throttle:20,1'); // each call is a (billable) external LLM request when AI is enabled
 
     // Serve the built React SPA for every /console route (client-side routing). `npm run build`
     // (in resources/console) emits public/console/index.html + assets.

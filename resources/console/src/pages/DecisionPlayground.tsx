@@ -25,7 +25,6 @@ export default function DecisionPlayground() {
     subjectType: 'user',
     subjectId: '',
     permission: '',
-    organization: '',
     application: '',
   })
   const [result, setResult] = useState<Decision | null>(null)
@@ -40,7 +39,6 @@ export default function DecisionPlayground() {
     return {
       subject: { type: form.subjectType, id: form.subjectId },
       permission: form.permission,
-      organization: form.organization || null,
       application: form.application || null,
     }
   }
