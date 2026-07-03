@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { apiPost, errorMessage } from '../lib/api'
 import { asText } from '../lib/format'
+import ApplicationPicker from '../components/ApplicationPicker'
 import PageHeader from '../components/PageHeader'
-import UserSelect from '../components/UserSelect'
+import PrivilegePicker from '../components/PrivilegePicker'
+import SubjectPicker, { type SubjectType } from '../components/SubjectPicker'
 import { useToast } from '../components/toast-context'
-import { Badge, Button, Card, CardHeader, EmptyState, Field, Input, KeyValues, Select, Spinner } from '../components/ui'
+import { Badge, Button, Card, CardHeader, EmptyState, Field, Input, KeyValues, Spinner } from '../components/ui'
 
 interface Decision {
   allowed?: boolean
@@ -64,27 +66,16 @@ export default function DecisionPlayground() {
         <Card>
           <CardHeader title="Query" subtitle="check = allow/deny · explain = step-by-step reasoning" />
           <div className="space-y-4 p-5">
-            <div className="grid grid-cols-3 gap-4">
-              <Field label="Subject type">
-                <Select value={form.subjectType} onChange={(e) => setForm({ ...form, subjectType: e.target.value, subjectId: '' })}>
-                  <option value="user">user</option>
-                  <option value="group">group</option>
-                  <option value="service">service</option>
-                </Select>
-              </Field>
-              <div className="col-span-2">
-                <Field label="Subject" hint={form.subjectType === 'user' ? undefined : 'id for the selected subject type'}>
-                  {form.subjectType === 'user' ? (
-                    <UserSelect ariaLabel="Decision subject user" value={form.subjectId} onChange={(id) => setForm({ ...form, subjectId: id })} />
-                  ) : (
-                    <Input value={form.subjectId} onChange={(e) => setForm({ ...form, subjectId: e.target.value })} placeholder="grp_… / svc_…" />
-                  )}
-                </Field>
-              </div>
-            </div>
+            <SubjectPicker
+              type={form.subjectType as SubjectType}
+              id={form.subjectId}
+              onType={(t) => setForm({ ...form, subjectType: t, subjectId: '' })}
+              onId={(id) => setForm({ ...form, subjectId: id })}
+              ariaLabel="Decision subject user"
+            />
 
-            <Field label="Permission" hint="e.g. iam:users.read">
-              <Input value={form.permission} onChange={(e) => setForm({ ...form, permission: e.target.value })} placeholder="iam:users.read" />
+            <Field label="Permission" hint="Grouped by application. Search by key.">
+              <PrivilegePicker kind="permission" value={form.permission} onChange={(k) => setForm({ ...form, permission: k })} ariaLabel="Decision permission" />
             </Field>
 
             <div className="grid grid-cols-2 gap-4">
@@ -92,7 +83,7 @@ export default function DecisionPlayground() {
                 <Input value={form.organization} onChange={(e) => setForm({ ...form, organization: e.target.value })} placeholder="org_…" />
               </Field>
               <Field label="Application" hint="optional">
-                <Input value={form.application} onChange={(e) => setForm({ ...form, application: e.target.value })} placeholder="app key" />
+                <ApplicationPicker value={form.application} onChange={(a) => setForm({ ...form, application: a })} ariaLabel="Decision application" />
               </Field>
             </div>
 

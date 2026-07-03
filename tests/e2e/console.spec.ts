@@ -69,11 +69,14 @@ test('login → every screen → create user → assign a permission', async ({ 
   const userId = String(((await createResp.json()).data as { id: string }).id)
   expect(userId).toBeTruthy()
 
-  // 4) Assign a permission to that user via the policy wizard (preview → commit). The subject is now
-  // picked from the real user list (sourced from GET /users), so select the user we just created.
+  // 4) Assign a permission to that user via the policy wizard (preview → commit). The subject and the
+  // privilege are now picked from searchable comboboxes: type to search, then click the option.
   await page.getByRole('link', { name: 'Roles & Grants', exact: true }).click()
-  await page.getByLabel('Grant subject user').selectOption(userId)
-  await page.getByPlaceholder('iam:users.read').fill('reports:view')
+  expect(userId).toBeTruthy()
+  await page.getByLabel('Grant subject user').fill(email)
+  await page.getByText(email).click() // the matching user option (name + email)
+  await page.getByLabel('Grant privilege').fill('audit.read')
+  await page.getByText('iam:audit.read', { exact: true }).click() // a real catalog permission
 
   const [previewResp] = await Promise.all([
     page.waitForResponse((r) => r.url().includes('policies-wizard/preview')),
