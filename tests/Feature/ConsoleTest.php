@@ -6,6 +6,8 @@ use App\Models\User;
 use Database\Seeders\IamRolesSeeder;
 use Database\Seeders\SuperAdminSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Fortify\Events\TwoFactorAuthenticationConfirmed;
+use Laravel\Fortify\Events\TwoFactorAuthenticationDisabled;
 use Laravel\Fortify\Events\TwoFactorAuthenticationFailed;
 use Padosoft\Iam\Contracts\Authorization\AuthorizationEngine;
 use Padosoft\Iam\Domain\Audit\Models\AuditEvent;
@@ -119,6 +121,25 @@ class ConsoleTest extends TestCase
             1,
             AuditEvent::query()->where('event_type', 'auth.login.succeeded')->count(),
             'a login must emit exactly ONE auth.login.succeeded (no double-registered listener)',
+        );
+    }
+
+    public function test_two_factor_enable_and_disable_are_audited(): void
+    {
+        $user = User::factory()->create();
+
+        // Fortify fires Confirmed when 2FA goes live and Disabled when it is turned off. Both are
+        // security-relevant and must be traceable (no listener existed before — they were never audited).
+        event(new TwoFactorAuthenticationConfirmed($user));
+        $this->assertTrue(
+            AuditEvent::query()->where('event_type', 'auth.2fa.enabled')->exists(),
+            'confirming 2FA should emit auth.2fa.enabled',
+        );
+
+        event(new TwoFactorAuthenticationDisabled($user));
+        $this->assertTrue(
+            AuditEvent::query()->where('event_type', 'auth.2fa.disabled')->exists(),
+            'disabling 2FA should emit auth.2fa.disabled',
         );
     }
 

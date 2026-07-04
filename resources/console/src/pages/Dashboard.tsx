@@ -95,7 +95,10 @@ export default function Dashboard() {
   const decisions = useResource<Metrics>(() => apiGet('metrics/decisions'), [])
   const grants = useResource<Metrics>(() => apiGet('metrics/grants'), [])
   const audit = useResource<Metrics>(() => apiGet('metrics/audit'), [])
-  const events = useCursorList<Record<string, unknown>>('audit/events', {}, 8)
+  // The audit endpoint filters ONE stream at a time and defaults to 'global' (empty) when none is given —
+  // login/logout/2FA and most activity live in 'auth', so ask for that (matches the Audit Log default)
+  // instead of showing an always-empty 'global' feed.
+  const events = useCursorList<Record<string, unknown>>('audit/events', { stream: 'auth' }, 8)
 
   return (
     <>
