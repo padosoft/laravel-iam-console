@@ -17,9 +17,13 @@ class RecordLoginSucceeded
 
     public function handle(Login $event): void
     {
-        // Only explicit sign-ins (POST /login), not remember-me recaller re-auth that fires Login on
-        // ordinary requests — otherwise the metric's login count would include cookie-restored sessions.
-        if (! $event->user instanceof User || request()->path() !== 'login') {
+        // Only explicit sign-ins, not the remember-me recaller re-auth that fires Login on ordinary
+        // requests (that would inflate the login metric with cookie-restored sessions). Accept BOTH the
+        // password POST (`/login`) and — crucially — the 2FA challenge POST (`/two-factor-challenge`),
+        // where the real Login fires when 2FA is enabled. Checking only `/login` silently dropped every
+        // 2FA login's audit (the regression). (POST /login has no route name in Fortify, so match by path.)
+        if (! $event->user instanceof User
+            || ! in_array(request()->path(), ['login', 'two-factor-challenge'], true)) {
             return;
         }
 
