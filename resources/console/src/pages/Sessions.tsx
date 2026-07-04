@@ -9,6 +9,24 @@ import { Badge, Button, Card, EmptyState, ErrorState, Loading, Table, Td, Th } f
 
 type Row = Record<string, unknown>
 
+/**
+ * Real session state, computed from the timestamps the API sends. A session that has idled out or passed its
+ * absolute timeout is dead even though its `revoked_at` is still null — show that instead of a live Revoke.
+ */
+function sessionState(s: Row): { label: string; tone: 'neutral' | 'warn' | 'ok'; live: boolean } {
+  if (asText(pick(s, ['revoked_at', 'revoked'])) !== '—') {
+    const reason = asText(pick(s, ['revoked_reason']))
+    return { label: reason !== '—' ? `revoked · ${reason}` : 'revoked', tone: 'neutral', live: false }
+  }
+  const now = Date.now()
+  const abs = Date.parse(asText(pick(s, ['absolute_expires_at'])))
+  if (!Number.isNaN(abs) && now >= abs) return { label: 'expired', tone: 'warn', live: false }
+  const last = Date.parse(asText(pick(s, ['last_activity_at', 'last_active_at'])))
+  const idle = Number(pick(s, ['idle_timeout'])) || 0
+  if (!Number.isNaN(last) && idle > 0 && now >= last + idle * 1000) return { label: 'idle', tone: 'warn', live: false }
+  return { label: 'active', tone: 'ok', live: true }
+}
+
 export default function Sessions() {
   const list = useCursorList<Row>('sessions', {}, 25)
   const names = useUserNames(list.items.map((s) => asText(pick(s, ['user_id', 'subject_id']))))
@@ -43,7 +61,7 @@ export default function Sessions() {
           <Table head={<><Th>Session</Th><Th>Subject</Th><Th>Assurance</Th><Th>Device / IP</Th><Th>Last active</Th><Th /></>}>
             {list.items.map((s, i) => {
               const id = String(pick(s, ['id', 'session_id', 'uuid']) ?? i)
-              const revoked = asText(pick(s, ['revoked_at', 'revoked'])) !== '—'
+              const state = sessionState(s)
               const aal = asText(pick(s, ['aal']))
               const stepUp = pick(s, ['step_up_at'])
               const deviceTag = asText(pick(s, ['device_tag']))
@@ -74,10 +92,10 @@ export default function Sessions() {
                   </Td>
                   <Td className="text-muted">{formatDate(pick(s, ['last_active_at', 'last_used_at', 'updated_at', 'created_at']))}</Td>
                   <Td className="text-right">
-                    {revoked ? (
-                      <Badge tone="neutral">revoked</Badge>
-                    ) : (
+                    {state.live ? (
                       <Button variant="danger" loading={busy === id} onClick={() => revoke(id)}>Revoke</Button>
+                    ) : (
+                      <Badge tone={state.tone}>{state.label}</Badge>
                     )}
                   </Td>
                 </tr>
