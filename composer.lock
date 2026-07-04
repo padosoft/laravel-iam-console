@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "42428b267139737216e720a0e92a517d",
+    "content-hash": "77127e6bca9cd0816661588d4f37ec53",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -3120,16 +3120,16 @@
         },
         {
             "name": "padosoft/laravel-iam-client",
-            "version": "v1.1.1",
+            "version": "v1.2.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/padosoft/laravel-iam-client.git",
-                "reference": "1fa2ca80846c59736b2ad7ede58df02a70d918f0"
+                "reference": "6c3baf5204f6bdcd2ac3415f0c863b19bd6f82e3"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/padosoft/laravel-iam-client/zipball/1fa2ca80846c59736b2ad7ede58df02a70d918f0",
-                "reference": "1fa2ca80846c59736b2ad7ede58df02a70d918f0",
+                "url": "https://api.github.com/repos/padosoft/laravel-iam-client/zipball/6c3baf5204f6bdcd2ac3415f0c863b19bd6f82e3",
+                "reference": "6c3baf5204f6bdcd2ac3415f0c863b19bd6f82e3",
                 "shasum": ""
             },
             "require": {
@@ -3170,9 +3170,9 @@
             "description": "Client Laravel per app che consumano Laravel IAM: login OIDC, verifica JWT/JWKS, introspection, middleware iam.auth/iam.can, Gate adapter, policy cache, webhook receiver.",
             "support": {
                 "issues": "https://github.com/padosoft/laravel-iam-client/issues",
-                "source": "https://github.com/padosoft/laravel-iam-client/tree/v1.1.1"
+                "source": "https://github.com/padosoft/laravel-iam-client/tree/v1.2.1"
             },
-            "time": "2026-06-30T17:49:19+00:00"
+            "time": "2026-07-04T15:47:49+00:00"
         },
         {
             "name": "padosoft/laravel-iam-contracts",
@@ -3276,16 +3276,16 @@
         },
         {
             "name": "padosoft/laravel-iam-server",
-            "version": "v1.13.0",
+            "version": "v1.14.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/padosoft/laravel-iam-server.git",
-                "reference": "5dc4a2be69fe7fd5ebd61c8a4b9db286dc7f17a4"
+                "reference": "ff186462b8e401a4e78eeabef1e78cd6dc1ccd83"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/padosoft/laravel-iam-server/zipball/5dc4a2be69fe7fd5ebd61c8a4b9db286dc7f17a4",
-                "reference": "5dc4a2be69fe7fd5ebd61c8a4b9db286dc7f17a4",
+                "url": "https://api.github.com/repos/padosoft/laravel-iam-server/zipball/ff186462b8e401a4e78eeabef1e78cd6dc1ccd83",
+                "reference": "ff186462b8e401a4e78eeabef1e78cd6dc1ccd83",
                 "shasum": ""
             },
             "require": {
@@ -3336,9 +3336,9 @@
             "description": "Server Laravel IAM: identity, organizations, Application Registry + manifest, PDP (RBAC+ABAC+ReBAC), OAuth (league/oauth2-server) + OIDC layer, audit tamper-evident, governance/IGA, Admin API + panel.",
             "support": {
                 "issues": "https://github.com/padosoft/laravel-iam-server/issues",
-                "source": "https://github.com/padosoft/laravel-iam-server/tree/v1.13.0"
+                "source": "https://github.com/padosoft/laravel-iam-server/tree/v1.14.0"
             },
-            "time": "2026-07-03T21:51:16+00:00"
+            "time": "2026-07-04T16:25:46+00:00"
         },
         {
             "name": "paragonie/constant_time_encoding",
