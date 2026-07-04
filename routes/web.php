@@ -29,7 +29,7 @@ Route::get('/', fn () => redirect('/console'));
 |
 */
 Route::prefix(config('iam.admin.route_prefix', 'api/iam/v1'))
-    ->middleware(['auth', 'iam.session_active', 'iam.admin_auth', 'iam.idempotency'])
+    ->middleware(['auth', 'iam.session_active', 'iam.2fa_required', 'iam.admin_auth', 'iam.idempotency'])
     ->group(base_path('vendor/padosoft/laravel-iam-server/routes/admin.php'));
 
 /*
@@ -37,7 +37,7 @@ Route::prefix(config('iam.admin.route_prefix', 'api/iam/v1'))
 | Console app endpoints (session-authed, not part of the IAM Admin API)
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth', 'iam.session_active'])->group(function () {
+Route::middleware(['auth', 'iam.session_active', 'iam.2fa_required'])->group(function () {
     // Current operator (for the topbar identity). No Admin API "whoami" exists; the SPA probes this
     // same-origin, session-authed route so it can show the operator's name instead of a generic label.
     Route::get('/api/user', fn (Request $request) => response()->json([
@@ -48,6 +48,9 @@ Route::middleware(['auth', 'iam.session_active'])->group(function () {
         // (IAM_CONSOLE_2FA). The SPA Security screen shows/hides itself on `console_2fa`.
         'two_factor_enabled' => $request->user()->two_factor_confirmed_at !== null,
         'console_2fa' => Features::canManageTwoFactorAuthentication(),
+        // Mandatory-2FA mode: when true and not yet enrolled, the SPA forces the operator to the Security
+        // screen and the API is blocked (EnsureTwoFactorEnrolled) until TOTP is confirmed.
+        'two_factor_required' => config('fortify.iam_two_factor_required') === true,
     ]));
 
     // Create a local user. The IAM Admin API does NOT create users (users come from the app's own
