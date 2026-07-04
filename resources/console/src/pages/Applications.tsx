@@ -155,7 +155,7 @@ function RegisterApp({ onClose, onDone }: { onClose: () => void; onDone: () => v
       ) : (
         <div className="space-y-4">
           {!manifest && (
-            <Field label="Manifest (laravel-iam.manifest.v2 JSON)" hint="Declares the app, its OAuth client, permissions and roles.">
+            <Field label="Manifest (laravel-iam.manifest.v2 JSON)" hint={'Declares the app, its OAuth client, permissions and roles. For asymmetric auth (no shared secret) set auth.token_endpoint_auth_method = "private_key_jwt" and auth.jwks to the app’s public key set.'}>
               <textarea
                 value={text}
                 onChange={(e) => setText(e.target.value)}
@@ -274,6 +274,8 @@ function ClientCredentials({ appKey }: { appKey: string }) {
   const status = asText(pick(info, ['secret_status']))
   const revoked = status === 'revoked'
   const isPublic = status === 'public'
+  // private_key_jwt: asymmetric auth, no shared secret → no rotate/secret UI, just the key-based note.
+  const usesPkjwt = pick(info, ['uses_private_key_jwt']) === true
 
   return (
     <section>
@@ -281,11 +283,15 @@ function ClientCredentials({ appKey }: { appKey: string }) {
       <div className="space-y-3 rounded-lg border border-line bg-surface-2/40 p-4">
         <div className="flex flex-wrap items-center gap-3">
           <code className="font-mono text-xs text-ink">{asText(pick(info, ['client_id']))}</code>
-          <Badge tone={statusTone(status)}>{status}</Badge>
-          {pick(info, ['auto_rotate']) === true && <Badge tone="info">auto-rotate · every {asText(pick(info, ['rotate_interval_days']))}d</Badge>}
-          {pick(info, ['grace_active']) === true && <Badge tone="warn">grace until {formatDate(pick(info, ['grace_until']))}</Badge>}
+          {usesPkjwt ? <Badge tone="info">private_key_jwt · asymmetric</Badge> : <Badge tone={statusTone(status)}>{status}</Badge>}
+          {!usesPkjwt && pick(info, ['auto_rotate']) === true && <Badge tone="info">auto-rotate · every {asText(pick(info, ['rotate_interval_days']))}d</Badge>}
+          {!usesPkjwt && pick(info, ['grace_active']) === true && <Badge tone="warn">grace until {formatDate(pick(info, ['grace_until']))}</Badge>}
         </div>
-        {asText(pick(info, ['secret_expires_at'])) !== '—' && <p className="text-xs text-muted">Secret expires {formatDate(pick(info, ['secret_expires_at']))}</p>}
+        {usesPkjwt ? (
+          <p className="text-xs text-muted">No shared secret — this client authenticates with a signed assertion against its registered public key ({pick(info, ['has_jwks']) === true ? 'JWKS registered' : 'no JWKS yet'}). Rotate by publishing a new public key in the manifest.</p>
+        ) : (
+          asText(pick(info, ['secret_expires_at'])) !== '—' && <p className="text-xs text-muted">Secret expires {formatDate(pick(info, ['secret_expires_at']))}</p>
+        )}
 
         {newSecret && (
           <div className="space-y-2">
@@ -296,7 +302,7 @@ function ClientCredentials({ appKey }: { appKey: string }) {
 
         {!isPublic && !revoked && (
           <div className="flex gap-2">
-            <Button variant="secondary" loading={busy} onClick={rotate}>Rotate secret</Button>
+            {!usesPkjwt && <Button variant="secondary" loading={busy} onClick={rotate}>Rotate secret</Button>}
             <Button variant="danger" loading={busy} onClick={revoke}>Revoke client</Button>
           </div>
         )}
