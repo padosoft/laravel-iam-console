@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "db47b30d6ddde0519dadf7f02ab23e9f",
+    "content-hash": "17b48d55c33c0b73bfa925b3c5874379",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -3276,16 +3276,16 @@
         },
         {
             "name": "padosoft/laravel-iam-server",
-            "version": "v1.15.0",
+            "version": "v1.16.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/padosoft/laravel-iam-server.git",
-                "reference": "fa56c6b085d9abf33c962eb6679f36462257f25a"
+                "reference": "f0a2f7bbe93d605edd0807e56bddfda53e233020"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/padosoft/laravel-iam-server/zipball/fa56c6b085d9abf33c962eb6679f36462257f25a",
-                "reference": "fa56c6b085d9abf33c962eb6679f36462257f25a",
+                "url": "https://api.github.com/repos/padosoft/laravel-iam-server/zipball/f0a2f7bbe93d605edd0807e56bddfda53e233020",
+                "reference": "f0a2f7bbe93d605edd0807e56bddfda53e233020",
                 "shasum": ""
             },
             "require": {
@@ -3336,9 +3336,9 @@
             "description": "Server Laravel IAM: identity, organizations, Application Registry + manifest, PDP (RBAC+ABAC+ReBAC), OAuth (league/oauth2-server) + OIDC layer, audit tamper-evident, governance/IGA, Admin API + panel.",
             "support": {
                 "issues": "https://github.com/padosoft/laravel-iam-server/issues",
-                "source": "https://github.com/padosoft/laravel-iam-server/tree/v1.15.0"
+                "source": "https://github.com/padosoft/laravel-iam-server/tree/v1.16.0"
             },
-            "time": "2026-07-04T16:56:31+00:00"
+            "time": "2026-07-04T18:21:26+00:00"
         },
         {
             "name": "paragonie/constant_time_encoding",
