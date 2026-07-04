@@ -214,16 +214,22 @@ You need only **an app + a database**. No Redis, no object storage.
    QUEUE_CONNECTION=database
    IAM_SUPERADMIN_EMAIL=you@example.com
    IAM_SUPERADMIN_PASSWORD=a-strong-password
+   # Optional hardening (see .env.example for the full, commented list):
+   IAM_CONSOLE_2FA=true            # offer TOTP 2FA (operators enrol under Security)
+   IAM_CONSOLE_2FA_REQUIRED=true   # FORCE every operator to enrol 2FA before using the console
+   IAM_AUDIT_IP_MODE=full          # readable IP/UA for forensics (needs TrustProxies)
+   IAM_OAUTH_CLIENT_SELFFETCH=true # allow auto-rotating apps to self-fetch their new secret
    ```
-5. **Set the deploy/build command** — build the console UI, migrate, and seed the super-admin:
+5. **Set the deploy/build command** — build the console UI, migrate, and seed the super-admin **+ roles**:
    ```bash
    composer install --no-dev --optimize-autoloader
    npm --prefix resources/console install --no-audit --no-fund && npm --prefix resources/console run build
    php artisan migrate --force
-   php artisan db:seed --class=SuperAdminSeeder --force
+   php artisan db:seed --class=SuperAdminSeeder --force        # also seeds the iam:* role catalog
    ```
-6. **Enable the scheduler** (a Laravel Cloud toggle) — it drives the only async work (audit checkpoints,
-   webhook delivery, access-review reminders) and needs no Redis.
+6. **Enable the scheduler** (a Laravel Cloud toggle) — it drives all async/maintenance work with no Redis:
+   audit checkpoints, webhook delivery, access-review reminders, **OAuth secret auto-rotation**
+   (`iam:rotate-due-secrets`) and **session pruning** (`iam:prune-sessions`).
 7. **Deploy, then sign in** at your URL as the super-admin. You now run IAM as a service, with a console.
 
 ## Connect your apps

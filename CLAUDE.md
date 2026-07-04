@@ -35,6 +35,14 @@ server; consuming apps separately install `padosoft/laravel-iam-client`.
 - **Revoking a session logs you out.** `App\Http\Middleware\EnsureIamSessionActive` (on the `auth` groups)
   checks the stashed `iam_sid` against the server `SessionRegistry` each request: a revoked/idle/expired
   IdP session tears down the Fortify session (401 → SPA bounces to `/login`); active ones are `touch`ed.
+- **Console 2FA — optional OR mandatory.** `IAM_CONSOLE_2FA=true` enables Fortify TOTP (opt-in: operators
+  enrol on the Security screen). Add `IAM_CONSOLE_2FA_REQUIRED=true` and it becomes **mandatory**:
+  `App\Http\Middleware\EnsureTwoFactorEnrolled` (alias `iam.2fa_required`, on both API groups) returns
+  `403 {two_factor_required:true}` for any operator without a confirmed TOTP (`two_factor_confirmed_at`), and
+  `/api/user` exposes `two_factor_required` so the SPA `Layout` forces the enrolment screen (no nav, logout
+  only) until they confirm. This is login-time posture; per-permission 2FA is a separate concern (the PDP's
+  `requires_step_up` → AAL2). NB: register all middleware aliases in a SINGLE `$middleware->alias([...])` call
+  in `bootstrap/app.php` — a second `->alias()` call overwrites the first in Laravel 11.
 - **Multi-tenancy (Organizations & Groups).** Orgs are first-class tenants (`iam_organizations`); groups
   (`iam_groups`) are org-scoped subjects you can grant to. The console super-admin is **global** (no org in
   context) so it sees/manages all tenants; a tenant-scoped actor is confined to its own org (cross-tenant →
