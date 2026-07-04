@@ -5,6 +5,9 @@ export interface CurrentUser {
   id?: string | number
   name?: string
   email?: string
+  two_factor_enabled?: boolean
+  two_factor_required?: boolean
+  console_2fa?: boolean
 }
 
 // Best-effort fetch of the signed-in operator for the topbar. There is no

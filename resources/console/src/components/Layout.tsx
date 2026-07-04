@@ -5,6 +5,7 @@ import { NavLink, Outlet } from 'react-router-dom'
 import { apiPost, errorMessage } from '../lib/api'
 import { cx, initials } from '../lib/format'
 import { useCurrentUser } from '../hooks/useCurrentUser'
+import Security from '../pages/Security'
 import { useRotationAlerts } from '../hooks/useRotationAlerts'
 import { Button } from './ui'
 import { useToast } from './toast-context'
@@ -94,6 +95,24 @@ export default function Layout() {
     } finally {
       window.location.assign('/login')
     }
+  }
+
+  // Mandatory 2FA: when enforcement is on and this operator hasn't confirmed TOTP, block the whole console
+  // and force enrolment (the Security page hosts the QR + recovery-code + confirm flow). No nav, no escape
+  // except logging out — the API is blocked server-side too (EnsureTwoFactorEnrolled).
+  if (user?.two_factor_required === true && user.two_factor_enabled === false) {
+    return (
+      <div className="min-h-screen bg-canvas px-4 py-10">
+        <div className="mx-auto max-w-2xl space-y-6">
+          <div className="rounded-lg border border-warn/40 bg-warn/10 p-4 text-sm text-warn">
+            <strong>Two-factor authentication is required.</strong> Set up an authenticator app to continue —
+            you can't use the console until 2FA is enabled.
+            <button onClick={logout} disabled={loggingOut} className="ml-2 underline">Log out</button>
+          </div>
+          <Security />
+        </div>
+      </div>
+    )
   }
 
   const sidebar = (

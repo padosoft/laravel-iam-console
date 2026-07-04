@@ -160,4 +160,9 @@ return [
         ]) : null,
     ])),
 
+    // MANDATORY 2FA: when the feature is on AND IAM_CONSOLE_2FA_REQUIRED is true, EnsureTwoFactorEnrolled
+    // blocks every operator from the API until they have CONFIRMED TOTP — enforced enrolment, not opt-in.
+    'iam_two_factor_required' => env('IAM_CONSOLE_2FA', false)
+        && filter_var(env('IAM_CONSOLE_2FA_REQUIRED', false), FILTER_VALIDATE_BOOLEAN),
+
 ];

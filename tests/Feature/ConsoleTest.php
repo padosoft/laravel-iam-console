@@ -124,6 +124,28 @@ class ConsoleTest extends TestCase
         );
     }
 
+    public function test_mandatory_2fa_blocks_operators_until_they_enrol(): void
+    {
+        // Enforcement on (as if IAM_CONSOLE_2FA=true + IAM_CONSOLE_2FA_REQUIRED=true).
+        config(['fortify.iam_two_factor_required' => true]);
+        $this->seed(SuperAdminSeeder::class);
+        $admin = User::where('email', 'admin@example.com')->firstOrFail();
+
+        // Unenrolled operator → the Admin API is blocked with a clear two_factor_required signal…
+        $this->actingAs($admin)->getJson('/api/iam/v1/users')
+            ->assertStatus(403)
+            ->assertJson(['two_factor_required' => true]);
+
+        // …but whoami stays open so the SPA can react and route the operator to enrolment.
+        $this->actingAs($admin)->getJson('/api/user')
+            ->assertOk()
+            ->assertJson(['two_factor_required' => true, 'two_factor_enabled' => false]);
+
+        // Once TOTP is confirmed, the gate opens.
+        $admin->forceFill(['two_factor_confirmed_at' => now()])->save();
+        $this->actingAs($admin)->getJson('/api/iam/v1/users')->assertOk();
+    }
+
     public function test_two_factor_enable_and_disable_are_audited(): void
     {
         $user = User::factory()->create();
