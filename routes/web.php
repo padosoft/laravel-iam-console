@@ -77,6 +77,32 @@ Route::middleware(['auth', 'iam.session_active', 'iam.2fa_required'])->group(fun
         return response()->json(['data' => ['id' => (string) $user->getKey(), 'name' => $user->name, 'email' => $user->email]], 201);
     });
 
+    // private_key_jwt helper: convert an app's PUBLIC key PEM (EC P-256 / ES256) into a JWKS, so an operator
+    // can register asymmetric auth entirely from the console UI without hand-computing x/y. Pure crypto math
+    // on operator-supplied input (no data access) — session-authed + throttled is enough. Mirrors iam:jwk.
+    Route::post('/api/console/jwk-from-pem', function (Request $request) {
+        $data = $request->validate(['pem' => ['required', 'string'], 'kid' => ['nullable', 'string', 'max:128']]);
+
+        $key = openssl_pkey_get_public($data['pem']);
+        if ($key === false) {
+            return response()->json(['message' => 'That is not a valid public key PEM.'], 422);
+        }
+        $d = openssl_pkey_get_details($key);
+        $ec = is_array($d) && isset($d['ec']) && is_array($d['ec']) ? $d['ec'] : null;
+        if ($ec === null || ($d['type'] ?? null) !== OPENSSL_KEYTYPE_EC || ($ec['curve_name'] ?? null) !== 'prime256v1'
+            || ! is_string($ec['x'] ?? null) || ! is_string($ec['y'] ?? null)) {
+            return response()->json(['message' => 'Only EC P-256 (ES256) public keys are supported.'], 422);
+        }
+        $b64u = fn (string $b): string => rtrim(strtr(base64_encode($b), '+/', '-_'), '=');
+        $x = $b64u($ec['x']);
+        $y = $b64u($ec['y']);
+        $kid = is_string($data['kid'] ?? null) && $data['kid'] !== '' ? $data['kid'] : substr(sha1($x.$y), 0, 8);
+
+        return response()->json(['data' => ['keys' => [
+            ['kty' => 'EC', 'crv' => 'P-256', 'x' => $x, 'y' => $y, 'kid' => $kid, 'alg' => 'ES256', 'use' => 'sig'],
+        ]]]);
+    })->middleware('throttle:30,1');
+
     // AI explain (advisory): natural-language reasoning over a PDP decision, via the AI module
     // (AccessExplainer → configured provider, e.g. regolo) with redaction + hallucination-guard. The AI
     // never decides — it re-phrases the PDP's own explanation. Always safe: if AI is disabled or the
