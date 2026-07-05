@@ -124,6 +124,27 @@ class ConsoleTest extends TestCase
         );
     }
 
+    public function test_jwk_from_pem_converts_an_ec_public_key(): void
+    {
+        $user = User::factory()->create();
+        $cnf = sys_get_temp_dir().DIRECTORY_SEPARATOR.'iam-console-openssl.cnf';
+        if (! is_file($cnf)) {
+            file_put_contents($cnf, "[req]\n");
+        }
+        $key = openssl_pkey_new(['private_key_type' => OPENSSL_KEYTYPE_EC, 'curve_name' => 'prime256v1', 'private_key_bits' => 2048, 'config' => $cnf]);
+        $pub = openssl_pkey_get_details($key)['key'];
+
+        $jwk = $this->actingAs($user)->postJson('/api/console/jwk-from-pem', ['pem' => $pub, 'kid' => 'k1'])
+            ->assertOk()->json('data.keys.0');
+        $this->assertSame('EC', $jwk['kty']);
+        $this->assertSame('P-256', $jwk['crv']);
+        $this->assertSame('k1', $jwk['kid']);
+        $this->assertSame('ES256', $jwk['alg']);
+
+        // A non-key input is rejected (fail-closed).
+        $this->actingAs($user)->postJson('/api/console/jwk-from-pem', ['pem' => 'not a key'])->assertStatus(422);
+    }
+
     public function test_mandatory_2fa_blocks_operators_until_they_enrol(): void
     {
         // Enforcement on (as if IAM_CONSOLE_2FA=true + IAM_CONSOLE_2FA_REQUIRED=true).

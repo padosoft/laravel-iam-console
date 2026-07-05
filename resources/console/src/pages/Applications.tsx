@@ -69,6 +69,56 @@ export default function Applications() {
   )
 }
 
+// UI helper for private_key_jwt onboarding: paste the app's PUBLIC key PEM, we convert it to a JWKS (server
+// endpoint /api/console/jwk-from-pem, same math as `iam:jwk`) and wire it into the manifest — asymmetric auth
+// registrable entirely from the UI. Signing the assertion stays with the app (its private key never leaves it).
+function PkjwtHelper({ text, setText }: { text: string; setText: (v: string) => void }) {
+  const toast = useToast()
+  const [open, setOpen] = useState(false)
+  const [pem, setPem] = useState('')
+  const [kid, setKid] = useState('k1')
+  const [busy, setBusy] = useState(false)
+
+  async function insert() {
+    setBusy(true)
+    try {
+      const jwks = await apiPost<{ keys: unknown[] }>('/api/console/jwk-from-pem', { pem, kid: kid || undefined })
+      let m: Record<string, unknown>
+      try {
+        m = JSON.parse(text) as Record<string, unknown>
+      } catch {
+        toast.error('Manifest is not valid JSON — fix it, then add the key.')
+        return
+      }
+      m.auth = { ...(m.auth as object | undefined), client_type: 'confidential', token_endpoint_auth_method: 'private_key_jwt', jwks }
+      setText(JSON.stringify(m, null, 2))
+      toast.success('Public key added as JWKS + auth set to private_key_jwt.')
+    } catch (e) {
+      toast.error(errorMessage(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="rounded-lg border border-line bg-surface-2/40 p-3 text-sm">
+      <button type="button" onClick={() => setOpen((o) => !o)} className="font-medium text-accent-2 hover:underline">
+        {open ? '▾' : '▸'} Use private_key_jwt (asymmetric — no shared secret)
+      </button>
+      {open && (
+        <div className="mt-3 space-y-2">
+          <p className="text-xs text-muted">Paste the app’s <strong>public</strong> key PEM (EC P-256). We convert it to a JWKS and wire it into the manifest above — the private key stays with the app, which signs its own assertions.</p>
+          <textarea value={pem} onChange={(e) => setPem(e.target.value)} spellCheck={false} placeholder={'-----BEGIN PUBLIC KEY-----\n…\n-----END PUBLIC KEY-----'} className="h-24 w-full rounded-lg border border-line-strong bg-surface-2 p-2 font-mono text-xs text-ink" />
+          <div className="flex items-center gap-2">
+            <input value={kid} onChange={(e) => setKid(e.target.value)} placeholder="kid" className="w-28 rounded-lg border border-line-strong bg-surface-2 p-2 text-xs text-ink" />
+            <Button variant="secondary" loading={busy} onClick={insert} disabled={!pem.trim()}>Add public key to manifest</Button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function RegisterApp({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
   const toast = useToast()
   const [text, setText] = useState(SAMPLE_MANIFEST)
@@ -155,14 +205,17 @@ function RegisterApp({ onClose, onDone }: { onClose: () => void; onDone: () => v
       ) : (
         <div className="space-y-4">
           {!manifest && (
-            <Field label="Manifest (laravel-iam.manifest.v2 JSON)" hint={'Declares the app, its OAuth client, permissions and roles. For asymmetric auth (no shared secret) set auth.token_endpoint_auth_method = "private_key_jwt" and auth.jwks to the app’s public key set.'}>
-              <textarea
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                spellCheck={false}
-                className="h-72 w-full rounded-lg border border-line-strong bg-surface-2 p-3 font-mono text-xs text-ink focus:border-accent-2 focus:outline-none"
-              />
-            </Field>
+            <>
+              <Field label="Manifest (laravel-iam.manifest.v2 JSON)" hint={'Declares the app, its OAuth client, permissions and roles. For asymmetric auth (no shared secret) set auth.token_endpoint_auth_method = "private_key_jwt" and auth.jwks to the app’s public key set.'}>
+                <textarea
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  spellCheck={false}
+                  className="h-72 w-full rounded-lg border border-line-strong bg-surface-2 p-3 font-mono text-xs text-ink focus:border-accent-2 focus:outline-none"
+                />
+              </Field>
+              <PkjwtHelper text={text} setText={setText} />
+            </>
           )}
 
           {manifest && (
