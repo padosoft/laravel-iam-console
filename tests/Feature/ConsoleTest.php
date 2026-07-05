@@ -10,6 +10,7 @@ use Laravel\Fortify\Events\TwoFactorAuthenticationConfirmed;
 use Laravel\Fortify\Events\TwoFactorAuthenticationDisabled;
 use Laravel\Fortify\Events\TwoFactorAuthenticationFailed;
 use Padosoft\Iam\Contracts\Authorization\AuthorizationEngine;
+use Padosoft\Iam\Domain\Applications\Manifest\ManifestRegistry;
 use Padosoft\Iam\Domain\Audit\Models\AuditEvent;
 use Padosoft\Iam\Domain\Authorization\Models\Grant;
 use Padosoft\Iam\Domain\Identity\Models\Session as IamSession;
@@ -143,6 +144,50 @@ class ConsoleTest extends TestCase
 
         // A non-key input is rejected (fail-closed).
         $this->actingAs($user)->postJson('/api/console/jwk-from-pem', ['pem' => 'not a key'])->assertStatus(422);
+    }
+
+    public function test_application_catalog_surfaces_deprecated_after_a_manifest_removes_a_permission_and_role(): void
+    {
+        // The full round-trip through the REAL console stack: apply a manifest, then re-apply a version that
+        // removes a permission + a role → the catalog endpoint (which the Applications UI renders) shows them
+        // DEPRECATED (kept, disabled), not gone.
+        $this->seed(SuperAdminSeeder::class);
+        $admin = User::where('email', 'admin@example.com')->firstOrFail();
+        $registry = app(ManifestRegistry::class);
+
+        $apply = function (array $payload) use ($registry): void {
+            $m = $registry->submit($payload, 'catalog-test');
+            if ($m->status !== 'approved') {
+                $registry->approve($m, 'catalog-test');
+            }
+            $registry->apply($m);
+        };
+
+        // v1: shop with two permissions + two roles.
+        $apply([
+            'schema' => 'laravel-iam.manifest.v2',
+            'app' => ['key' => 'shop', 'name' => 'Shop'],
+            'permissions' => [['key' => 'orders.view', 'risk' => 'low'], ['key' => 'orders.refund', 'risk' => 'high']],
+            'roles' => [['key' => 'clerk', 'permissions' => ['orders.view']], ['key' => 'viewer', 'permissions' => ['orders.view']]],
+        ]);
+
+        // v2 removes orders.view + role viewer.
+        $apply([
+            'schema' => 'laravel-iam.manifest.v2',
+            'app' => ['key' => 'shop', 'name' => 'Shop'],
+            'permissions' => [['key' => 'orders.refund', 'risk' => 'high']],
+            'roles' => [['key' => 'clerk', 'permissions' => ['orders.refund']]],
+        ]);
+
+        $res = $this->actingAs($admin)->getJson('/api/iam/v1/applications/shop/catalog')->assertOk();
+        $perms = collect($res->json('data.permissions'))->keyBy('key');
+        $roles = collect($res->json('data.roles'))->keyBy('key');
+
+        // Removed → deprecated (kept, disabled); kept → still active.
+        $this->assertNotNull($perms['orders.view']['deprecated_at'] ?? null, 'removed permission must be deprecated');
+        $this->assertNull($perms['orders.refund']['deprecated_at'] ?? null, 'kept permission stays active');
+        $this->assertNotNull($roles['viewer']['deprecated_at'] ?? null, 'removed role must be deprecated');
+        $this->assertNull($roles['clerk']['deprecated_at'] ?? null, 'kept role stays active');
     }
 
     public function test_mandatory_2fa_blocks_operators_until_they_enrol(): void

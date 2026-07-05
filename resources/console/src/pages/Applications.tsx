@@ -364,9 +364,39 @@ function ClientCredentials({ appKey }: { appKey: string }) {
   )
 }
 
+type CatalogEntry = { key?: string; full_key?: string; risk?: string; label?: string; deprecated_at?: string | null }
+
+// Renders the app's permission/role catalog. A removed (deprecated) entry is kept for history and shown
+// struck-through with a "Deprecated" badge — it's disabled, not deleted (re-adding it in a manifest reactivates).
+function CatalogList({ title, items }: { title: string; items: CatalogEntry[] }) {
+  const live = items.filter((i) => !i.deprecated_at).length
+  return (
+    <div>
+      <div className="mb-1 text-xs font-medium text-muted">
+        {title} <span className="text-faint">({live} active{items.length - live > 0 ? `, ${items.length - live} deprecated` : ''})</span>
+      </div>
+      {items.length === 0 ? (
+        <p className="text-xs text-faint">None.</p>
+      ) : (
+        <ul className="space-y-1">
+          {items.map((it) => (
+            <li key={it.full_key ?? it.key} className="flex items-center justify-between gap-2 rounded border border-line bg-surface-2/40 px-2 py-1 text-xs">
+              <span className={it.deprecated_at ? 'text-faint line-through' : 'text-ink'}>
+                {it.key}{it.label ? ` — ${it.label}` : ''}
+              </span>
+              {it.deprecated_at ? <Badge tone="warn">Deprecated</Badge> : it.risk ? <Badge tone="neutral">{it.risk}</Badge> : null}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
 function ApplicationDetail({ app, onClose }: { app: Row; onClose: () => void }) {
   const id = appId(app)
   const manifest = useResource<unknown>(() => apiGet(`applications/${encodeURIComponent(id)}/manifest`), [id])
+  const catalog = useResource<{ permissions: CatalogEntry[]; roles: CatalogEntry[] }>(() => apiGet(`applications/${encodeURIComponent(id)}/catalog`), [id])
 
   return (
     <Modal open wide title={asText(pick(app, ['name', 'title']) ?? 'Application')} onClose={onClose}>
@@ -376,6 +406,19 @@ function ApplicationDetail({ app, onClose }: { app: Row; onClose: () => void }) 
           <KeyValues data={app} />
         </section>
         <ClientCredentials appKey={id} />
+        <section>
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-faint">Permissions &amp; roles</h3>
+          {catalog.loading ? (
+            <Loading />
+          ) : catalog.error ? (
+            <ErrorState message={catalog.error} onRetry={catalog.reload} />
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <CatalogList title="Permissions" items={catalog.data?.permissions ?? []} />
+              <CatalogList title="Roles" items={catalog.data?.roles ?? []} />
+            </div>
+          )}
+        </section>
         <section>
           <div className="mb-2 flex items-center gap-2">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-faint">Applied manifest</h3>
