@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { apiPost, errorMessage } from '../lib/api'
 import { useCursorList } from '../hooks/useApi'
+import { useCapabilities } from '../hooks/useCapabilities'
 import { useUserNames } from '../hooks/useUserNames'
 import { asText, formatDate, pick } from '../lib/format'
 import PageHeader from '../components/PageHeader'
@@ -18,7 +19,13 @@ const STREAMS: Array<{ value: string; label: string }> = [
 ]
 
 export default function AuditLog() {
+  const caps = useCapabilities()
   const [stream, setStream] = useState('auth')
+  // The delegation stream (agents module) appears only when the server reports it active:
+  // every exchange (issued AND refused), grant create/revoke, agent lifecycle transition.
+  const streams = caps?.modules.agents === true
+    ? [...STREAMS, { value: 'delegation', label: 'Delegation (agents, exchanges, grants)' }]
+    : STREAMS
   const [search, setSearch] = useState('')
   const [type, setType] = useState('')
   useEffect(() => {
@@ -67,7 +74,7 @@ export default function AuditLog() {
             </div>
             <div className="w-56">
               <Select value={stream} onChange={(e) => setStream(e.target.value)} aria-label="Audit stream">
-                {STREAMS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+                {streams.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
               </Select>
             </div>
             <Button variant="primary" loading={verifying} onClick={verifyChain}>Verify chain</Button>

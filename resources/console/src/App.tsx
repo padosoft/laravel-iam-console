@@ -13,6 +13,8 @@ import AccessReviews from './pages/AccessReviews'
 import Recommendations from './pages/Recommendations'
 import Applications from './pages/Applications'
 import Security from './pages/Security'
+import Agents from './pages/Agents'
+import Delegations from './pages/Delegations'
 
 // The SPA is mounted at /console/ (see vite base + the host catch-all route),
 // so the router basename strips that prefix from client-side paths.
@@ -34,6 +36,10 @@ export default function App() {
             <Route path="applications" element={<Applications />} />
             <Route path="playground" element={<DecisionPlayground />} />
             <Route path="security" element={<Security />} />
+            {/* Delegated access (laravel-iam-agents): always routed — each page renders its own
+                "module not active" empty state; the NAV links are what the capability gates. */}
+            <Route path="agents" element={<Agents />} />
+            <Route path="delegations" element={<Delegations />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
