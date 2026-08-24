@@ -98,11 +98,13 @@ export default function Delegations() {
         ) : list.items.length === 0 ? (
           <EmptyState title="No delegation grants" hint="Grants are created by users through the consent flow (step-up, AAL2, dynamic linking) — never by admins on their behalf." />
         ) : (
-          <Table head={<><Th>User</Th><Th>Agent</Th><Th>Scopes</Th><Th>Consent</Th><Th>Expires</Th><Th>Status</Th><Th /></>}>
+          <Table head={<><Th>User</Th><Th>Agent</Th><Th>Scopes</Th><Th>Budget</Th><Th>Elevations</Th><Th>Consent</Th><Th>Expires</Th><Th>Status</Th><Th /></>}>
             {list.items.map((g, i) => {
               const id = String(pick(g, ['id']) ?? i)
               const state = grantState(g)
               const scopes = Array.isArray(g.scopes) ? (g.scopes as unknown[]).map(String) : []
+              const budget = typeof g.budget === 'object' && g.budget !== null ? (g.budget as Record<string, unknown>) : null
+              const elevations = Array.isArray(g.pending_elevations) ? (g.pending_elevations as unknown[]) : []
               const aal = asText(pick(g, ['consent_aal']))
               return (
                 <tr key={id} className="hover:bg-surface-2/60">
@@ -119,6 +121,20 @@ export default function Delegations() {
                       {scopes.slice(0, 3).map((s) => <Badge key={s} tone="info">{s}</Badge>)}
                       {scopes.length > 3 && <span className="text-xs text-faint">+{scopes.length - 3}</span>}
                     </div>
+                  </Td>
+                  <Td>
+                    {budget ? (
+                      <div className="flex max-w-[12rem] flex-wrap gap-1">
+                        {budget.amount != null && <Badge tone="accent">{String(budget.amount)} {asText(budget.currency ?? 'EUR')}</Badge>}
+                        {budget.calls != null && <Badge tone="neutral">{String(budget.calls)} calls</Badge>}
+                        {budget.tokens != null && <Badge tone="neutral">{String(budget.tokens)} tok</Badge>}
+                      </div>
+                    ) : <span className="text-faint">—</span>}
+                  </Td>
+                  <Td>
+                    {elevations.length > 0
+                      ? <Badge tone="warn">{elevations.length} pending</Badge>
+                      : <span className="text-faint">—</span>}
                   </Td>
                   <Td>
                     {aal !== '—'
