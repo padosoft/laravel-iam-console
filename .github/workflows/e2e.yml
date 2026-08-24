@@ -37,14 +37,19 @@ jobs:
         with:
           node-version: 20
 
+      - name: Prepare env (before composer install)
+        # iam-server >= 1.23: IamServiceProvider::boot() deriva la KEK di sviluppo
+        # da APP_KEY — e composer install lancia package:discover, che boota l'app.
+        # L'.env con una APP_KEY valida deve quindi esistere PRIMA dell'install.
+        run: |
+          cp .env.example .env
+          sed -i "s|^APP_KEY=.*|APP_KEY=base64:$(openssl rand -base64 32)|" .env
+
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
 
-      - name: Prepare app (key, migrate, seed super-admin)
-        run: |
-          cp .env.example .env
-          php artisan key:generate
-          php artisan migrate:fresh --seed --force
+      - name: Prepare app (migrate, seed super-admin)
+        run: php artisan migrate:fresh --seed --force
 
       - name: Build the console SPA
         run: |
