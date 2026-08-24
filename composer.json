@@ -5,9 +5,6 @@
     "description": "The skeleton application for the Laravel framework.",
     "keywords": ["laravel", "framework"],
     "license": "MIT",
-    "repositories": [
-        { "type": "git", "url": "https://github.com/padosoft/laravel-iam-agents.git" }
-    ],
     "require": {
         "php": "^8.3",
         "laravel/fortify": "^1.36",
@@ -17,7 +14,7 @@
         "padosoft/laravel-iam-bridge-spatie-permission": "^1.1",
         "padosoft/laravel-iam-client": "^1.2",
         "padosoft/laravel-iam-directory": "^1.1",
-        "padosoft/laravel-iam-agents": "^0.1",
+        "padosoft/laravel-iam-agents": "^0.2",
         "padosoft/laravel-iam-server": "^1.23"
     },
     "require-dev": {
