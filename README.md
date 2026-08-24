@@ -292,7 +292,8 @@ for the CI/ship workflow (local-green → PR → Copilot → `testE2E` label →
 This app is the host; the rest of Laravel IAM plugs into or consumes it. Every package has its own docs site:
 
 - **Server & modules (Packagist):** [server](https://doc.laravel-iam-server.padosoft.com) ·
-  [client](https://doc.laravel-iam-client.padosoft.com) · [ai](https://doc.laravel-iam-ai.padosoft.com) ·
+  [client](https://doc.laravel-iam-client.padosoft.com) · [agents](https://doc.laravel-iam-agents.padosoft.com) ·
+  [ai](https://doc.laravel-iam-ai.padosoft.com) ·
   [directory](https://doc.laravel-iam-directory.padosoft.com) ·
   [bridge-spatie-permission](https://doc.laravel-iam-bridge-spatie-permission.padosoft.com) ·
   [contracts](https://doc.laravel-iam-contracts.padosoft.com)

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "9275b6036400d6ea09639e380780b11a",
+    "content-hash": "c2ecd9d70ab205de6a304ebe7f31a17f",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -3009,11 +3009,17 @@
         },
         {
             "name": "padosoft/laravel-iam-agents",
-            "version": "v0.1.0",
+            "version": "v0.2.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/padosoft/laravel-iam-agents.git",
-                "reference": "6fb7ed0b6adee358c5799d8c0fc901f0c6f8795b"
+                "reference": "45c0f9bb5214f9c6e326703bd9a650365cbd6d8e"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/padosoft/laravel-iam-agents/zipball/45c0f9bb5214f9c6e326703bd9a650365cbd6d8e",
+                "reference": "45c0f9bb5214f9c6e326703bd9a650365cbd6d8e",
+                "shasum": ""
             },
             "require": {
                 "league/oauth2-server": "^9.0",
@@ -3026,18 +3032,22 @@
                 "larastan/larastan": "^3.0",
                 "laravel/pint": "^1.18",
                 "orchestra/testbench": "^9.0|^10.0",
+                "padosoft/laravel-rebel-step-up": "^0.2",
                 "pestphp/pest": "^3.0",
                 "pestphp/pest-plugin-laravel": "^3.0"
             },
+            "suggest": {
+                "padosoft/laravel-rebel-step-up": "Consenso PSD2-grade con dynamic linking reale (RebelStepUpConsentVerifier) al posto del verifier nativo (^0.2)"
+            },
             "type": "library",
             "extra": {
-                "branch-alias": {
-                    "dev-main": "0.1-dev"
-                },
                 "laravel": {
                     "providers": [
                         "Padosoft\\Iam\\Agents\\IamAgentsServiceProvider"
                     ]
+                },
+                "branch-alias": {
+                    "dev-main": "0.1-dev"
                 }
             },
             "autoload": {
@@ -3045,22 +3055,7 @@
                     "Padosoft\\Iam\\Agents\\": "src/"
                 }
             },
-            "autoload-dev": {
-                "psr-4": {
-                    "Padosoft\\Iam\\Agents\\Tests\\": "tests/"
-                }
-            },
-            "scripts": {
-                "analyse": [
-                    "phpstan analyse"
-                ],
-                "lint": [
-                    "pint"
-                ],
-                "test": [
-                    "pest"
-                ]
-            },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -3075,7 +3070,11 @@
                 "rfc8693",
                 "token-exchange"
             ],
-            "time": "2026-08-24T06:34:19+00:00"
+            "support": {
+                "issues": "https://github.com/padosoft/laravel-iam-agents/issues",
+                "source": "https://github.com/padosoft/laravel-iam-agents/tree/v0.2.0"
+            },
+            "time": "2026-08-24T08:13:59+00:00"
         },
         {
             "name": "padosoft/laravel-iam-ai",
