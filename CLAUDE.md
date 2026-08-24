@@ -11,6 +11,10 @@ server; consuming apps separately install `padosoft/laravel-iam-client`.
 - `laravel-iam-client` — deciders + `iam.auth`/`iam.can` + Gate adapter (for in-app authorization).
 - `laravel-iam-ai` — advisory-only AI governance (redaction + hallucination-guard + audit).
 - `laravel-iam-directory` — LDAP/AD login + JIT provisioning (LdapRecord adapter optional).
+- `laravel-iam-agents` — delegated access for AI agents (RFC 8693 token exchange, agent registry,
+  delegation grants, intersection PDP). Its Admin API is re-registered in `routes/web.php` under the
+  session stack; the SPA's Agents/Delegations pages light up via `GET /capabilities`. NOTE: installed
+  from a `git` composer repository until the package is submitted to Packagist (one-time, owner-only).
 - `laravel-iam-bridge-spatie-permission` — migration bridge from spatie/laravel-permission.
 - `laravel-iam-contracts` — shared interfaces/DTOs (transitive).
 - `laravel/fortify` — web login backend for the IdP.
@@ -59,6 +63,11 @@ server; consuming apps separately install `padosoft/laravel-iam-client`.
   that runs the PDP decision then passes it to the AI `AccessExplainer` (configured provider, e.g. regolo,
   with redaction + hallucination-guard). Always safe: AI off / provider error / guard trip → deterministic
   PDP explanation. Enable with `IAM_AI_ENABLED=true` + provider env; the Decision playground shows it.
+- **Optional-module Admin APIs re-register the same way.** `laravel-iam-agents` honours
+  `iam.admin.register_routes=false` like the server; `routes/web.php` includes the module's
+  `routes/admin.php` under the session stack only when the package is installed (file check). The SPA never
+  probes module endpoints blindly — it asks `GET /capabilities` (which module providers populate via
+  `config()->set('iam.capabilities.modules.<name>', …)` at boot).
 - **A few host-side routes complement the Admin API** (all in `routes/web.php`, session-authed): `GET /api/user`
   (whoami for the topbar identity — there is no Admin API whoami), `POST /api/console/users` (user creation —
   the Admin API doesn't create users), and `POST /api/console/ai-explain` (above).
@@ -74,7 +83,13 @@ server; consuming apps separately install `padosoft/laravel-iam-client`.
   `resources/openapi.yaml` — the contract; never invent endpoints) plus the few host-side `/api/console/*`
   and `/api/user` routes noted above.
 - Screens: dashboard, users, roles & grants, organizations, groups, sessions, audit log, access reviews,
-  recommendations (least-privilege), applications, decision playground (with "Explain with AI").
+  recommendations (least-privilege), applications, decision playground (with "Explain with AI") — plus, when
+  the server reports the `laravel-iam-agents` module via **GET `/capabilities`**: **Agents** (registry +
+  lifecycle: approve with pasted JWKS = the human gate that creates the private_key_jwt/token-exchange-only
+  OAuth client; suspend/retire) and **Delegations** (org-wide user→agent grants, revoke = kill-switch), and
+  a `delegation` option in the Audit stream picker. The `useCapabilities` hook gates the NAV; the routes are
+  always registered and each page renders its own "module not active" empty state (an older server without
+  `/capabilities` resolves to "no modules" — never an error banner).
 - Reusable searchable pickers (`SearchSelect` base): `UserPicker`, `PrivilegePicker`, `ApplicationPicker`,
   `OrganizationPicker`, `GroupPicker`, `SubjectPicker` (user/group/service_account). ULIDs in Sessions /
   Audit / reviews are resolved to name+email via the `useUserNames` hook.

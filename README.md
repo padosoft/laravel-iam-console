@@ -86,6 +86,8 @@ screen talks **only** to the server's real Admin API (`/api/iam/v1`) — nothing
 | **Recommendations** | **AI &amp; least-privilege** findings — unused grants, over-privileged subjects (advisory, draft-only). |
 | **Applications** | The registered applications and their manifests. |
 | **Decision playground** | Ask the PDP a **`check` / `explain`** and see the real ALLOW/DENY + the reasoning. |
+| **Agents** *(optional — appears when [`laravel-iam-agents`](https://github.com/padosoft/laravel-iam-agents) is installed)* | The agent identity registry for **delegated access** (OAuth Token Exchange, RFC 8693): review pending registrations and **approve them by pasting the agent's public JWKS** — the human gate that creates a `private_key_jwt`, token-exchange-only OAuth client. Suspend (deny everything, immediately) or retire. |
+| **Delegations** *(optional, same module)* | Every **user → agent delegation grant** org-wide: who delegated, to which agent, which scopes, under which consent (AAL). **Revoke is the central kill-switch** — the next exchange fails and delegated decisions deny at once. The Audit screen gains a `delegation` stream with every exchange (issued *and* refused). |
 
 > **Note on user creation.** The IAM Admin API intentionally does **not** create users (identities come from
 > your app's auth / OIDC / directory). The console owns user creation via a small app endpoint
