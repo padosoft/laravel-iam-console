@@ -11,6 +11,10 @@ server; consuming apps separately install `padosoft/laravel-iam-client`.
 - `laravel-iam-client` — deciders + `iam.auth`/`iam.can` + Gate adapter (for in-app authorization).
 - `laravel-iam-ai` — advisory-only AI governance (redaction + hallucination-guard + audit).
 - `laravel-iam-directory` — LDAP/AD login + JIT provisioning (LdapRecord adapter optional).
+- `laravel-iam-agents` — delegated access for AI agents (RFC 8693 token exchange, agent registry,
+  delegation grants, intersection PDP). Its Admin API is re-registered in `routes/web.php` under the
+  session stack; the SPA's Agents/Delegations pages light up via `GET /capabilities`. NOTE: installed
+  from a `git` composer repository until the package is submitted to Packagist (one-time, owner-only).
 - `laravel-iam-bridge-spatie-permission` — migration bridge from spatie/laravel-permission.
 - `laravel-iam-contracts` — shared interfaces/DTOs (transitive).
 - `laravel/fortify` — web login backend for the IdP.
