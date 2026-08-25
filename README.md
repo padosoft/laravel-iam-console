@@ -81,7 +81,7 @@ screen talks **only** to the server's real Admin API (`/api/iam/v1`) — nothing
 | **Users** | List &amp; search users, open a user to see **effective permissions**, **create a user**, **suspend / reactivate**, and revoke all their sessions. |
 | **Roles &amp; Grants** | Assign a **permission or role** to a user with the policy wizard — **preview the impact** (who's affected, conflicts) then **commit** a `permit` / `deny` grant. |
 | **Sessions** | List active sessions and **revoke** them individually. |
-| **Audit log** | Browse audit events and **verify the tamper-evident hash-chain** on demand. |
+| **Audit log** | Browse audit events and **verify the tamper-evident hash-chain** on demand. On the `delegation` stream every event also names the **AI run it happened inside** — and, when one agent ran as another's tool, the run that delegated to it *and the tool call the hop came through*. Ordering by timestamp and hoping was the alternative: two agents exchanging in the same second are indistinguishable exactly when you most need to tell them apart. Needs [`laravel-iam-agents`](https://github.com/padosoft/laravel-iam-agents) ≥ 1.2 on `laravel/ai` ^0.11; older events render exactly as before. |
 | **Access reviews** | Create certification **campaigns**, open/close them, and **certify or revoke** each access item. |
 | **Recommendations** | **AI &amp; least-privilege** findings — unused grants, over-privileged subjects (advisory, draft-only). |
 | **Applications** | The registered applications and their manifests. |
