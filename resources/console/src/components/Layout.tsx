@@ -7,6 +7,7 @@ import { cx, initials } from '../lib/format'
 import { useCurrentUser } from '../hooks/useCurrentUser'
 import Security from '../pages/Security'
 import { useRotationAlerts } from '../hooks/useRotationAlerts'
+import { useCapabilities } from '../hooks/useCapabilities'
 import { Button } from './ui'
 import { useToast } from './toast-context'
 
@@ -39,6 +40,13 @@ const NAV: NavItem[] = [
   { to: '/applications', label: 'Applications', icon: <Icon path="M4 4h7v7H4V4Zm9 0h7v7h-7V4ZM4 13h7v7H4v-7Zm9 0h7v7h-7v-7Z" /> },
   { to: '/playground', label: 'Decision playground', icon: <Icon path="M12 2v4M12 18v4M2 12h4M18 12h4M6 6l2 2M16 16l2 2M18 6l-2 2M8 16l-2 2M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z" /> },
   { to: '/security', label: 'Security', icon: <Icon path="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6l8-4Zm0 7v4m0 3h.01" /> },
+]
+
+// Shown only when the server reports the agents module active (GET /capabilities):
+// delegated access for AI agents — agent registry + user→agent delegation grants.
+const AGENTS_NAV: NavItem[] = [
+  { to: '/agents', label: 'Agents', icon: <Icon path="M12 8V4m0 0H8m4 0h4M5 8h14a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Zm4 5h.01M15 13h.01M9 19v2m6-2v2" /> },
+  { to: '/delegations', label: 'Delegations', icon: <Icon path="M7 7a3 3 0 1 0 0 .01M17 17a3 3 0 1 0 0 .01M9.5 9.5l5 5M14 5h5v5" /> },
 ]
 
 function NavItemLink({ item, onNavigate }: { item: NavItem; onNavigate?: () => void }) {
@@ -79,6 +87,7 @@ function RotationBanner() {
 
 export default function Layout() {
   const user = useCurrentUser()
+  const caps = useCapabilities()
   const toast = useToast()
   const [open, setOpen] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
@@ -120,6 +129,16 @@ export default function Layout() {
       {NAV.map((item) => (
         <NavItemLink key={item.to} item={item} onNavigate={() => setOpen(false)} />
       ))}
+      {caps?.modules.agents === true && (
+        <>
+          <div className="mt-2 px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider text-faint">
+            Delegated access
+          </div>
+          {AGENTS_NAV.map((item) => (
+            <NavItemLink key={item.to} item={item} onNavigate={() => setOpen(false)} />
+          ))}
+        </>
+      )}
     </nav>
   )
 
