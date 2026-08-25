@@ -32,6 +32,17 @@ Route::prefix(config('iam.admin.route_prefix', 'api/iam/v1'))
     ->middleware(['auth', 'iam.session_active', 'iam.2fa_required', 'iam.admin_auth', 'iam.idempotency'])
     ->group(base_path('vendor/padosoft/laravel-iam-server/routes/admin.php'));
 
+// Optional module: laravel-iam-agents (delegated access for AI agents). Same re-registration
+// pattern as the server's Admin API above — the module honours iam.admin.register_routes=false
+// and we include its admin routes here, under the session stack, only when it is installed.
+// The SPA gates its Agents/Delegations nav on GET /capabilities, so an absent module simply
+// never surfaces.
+if (is_file(base_path('vendor/padosoft/laravel-iam-agents/routes/admin.php'))) {
+    Route::prefix(config('iam.admin.route_prefix', 'api/iam/v1'))
+        ->middleware(['auth', 'iam.session_active', 'iam.2fa_required', 'iam.admin_auth', 'iam.idempotency'])
+        ->group(base_path('vendor/padosoft/laravel-iam-agents/routes/admin.php'));
+}
+
 /*
 |--------------------------------------------------------------------------
 | Console app endpoints (session-authed, not part of the IAM Admin API)
