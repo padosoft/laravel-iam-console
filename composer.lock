@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "e844b28012347007cfc2ba4db64d1a6b",
+    "content-hash": "50dd8417be485f19ca71a39794ccc974",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -3009,27 +3009,28 @@
         },
         {
             "name": "padosoft/laravel-iam-agents",
-            "version": "v1.0.0",
+            "version": "v1.2.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/padosoft/laravel-iam-agents.git",
-                "reference": "e99d18e7f599ad040397c2f736341af218c36876"
+                "reference": "08eb2d54ef3b5f617846dc3957e0bf2fe3f2d78e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/padosoft/laravel-iam-agents/zipball/e99d18e7f599ad040397c2f736341af218c36876",
-                "reference": "e99d18e7f599ad040397c2f736341af218c36876",
+                "url": "https://api.github.com/repos/padosoft/laravel-iam-agents/zipball/08eb2d54ef3b5f617846dc3957e0bf2fe3f2d78e",
+                "reference": "08eb2d54ef3b5f617846dc3957e0bf2fe3f2d78e",
                 "shasum": ""
             },
             "require": {
                 "league/oauth2-server": "^9.0",
-                "padosoft/laravel-iam-contracts": "^1.3",
+                "padosoft/laravel-iam-contracts": "^1.4",
                 "padosoft/laravel-iam-server": "^1.23",
                 "php": "^8.3",
                 "spatie/laravel-package-tools": "^1.16"
             },
             "require-dev": {
                 "larastan/larastan": "^3.0",
+                "laravel/ai": "^0.11",
                 "laravel/pint": "^1.18",
                 "orchestra/testbench": "^9.0|^10.0",
                 "padosoft/laravel-rebel-step-up": "^0.2",
@@ -3037,6 +3038,7 @@
                 "pestphp/pest-plugin-laravel": "^3.0"
             },
             "suggest": {
+                "laravel/ai": "Correla il contesto di delega al run dell'SDK AI: `invocation_id` e l'hop padre su ogni log e audit record emesso durante il run (^0.11, dove gli eventi di run sono stati introdotti).",
                 "padosoft/laravel-rebel-step-up": "Consenso PSD2-grade con dynamic linking reale (RebelStepUpConsentVerifier) al posto del verifier nativo (^0.2)"
             },
             "type": "library",
@@ -3072,9 +3074,9 @@
             ],
             "support": {
                 "issues": "https://github.com/padosoft/laravel-iam-agents/issues",
-                "source": "https://github.com/padosoft/laravel-iam-agents/tree/v1.0.0"
+                "source": "https://github.com/padosoft/laravel-iam-agents/tree/v1.2.0"
             },
-            "time": "2026-08-24T09:37:06+00:00"
+            "time": "2026-08-25T16:38:49+00:00"
         },
         {
             "name": "padosoft/laravel-iam-ai",
@@ -3249,16 +3251,16 @@
         },
         {
             "name": "padosoft/laravel-iam-contracts",
-            "version": "v1.3.0",
+            "version": "v1.5.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/padosoft/laravel-iam-contracts.git",
-                "reference": "1e26ae3a4dd2fbfb983b38542d8984280e0fde65"
+                "reference": "489e2197ed116a7a5f5e536ebab46413d8a27ac3"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/padosoft/laravel-iam-contracts/zipball/1e26ae3a4dd2fbfb983b38542d8984280e0fde65",
-                "reference": "1e26ae3a4dd2fbfb983b38542d8984280e0fde65",
+                "url": "https://api.github.com/repos/padosoft/laravel-iam-contracts/zipball/489e2197ed116a7a5f5e536ebab46413d8a27ac3",
+                "reference": "489e2197ed116a7a5f5e536ebab46413d8a27ac3",
                 "shasum": ""
             },
             "require": {
@@ -3286,9 +3288,9 @@
             "description": "Contratti (interfacce + DTO) condivisi di Laravel IAM: AuthorizationEngine/PDP, KeyProvider/SecretCipher, Assurance, FeatureScope.",
             "support": {
                 "issues": "https://github.com/padosoft/laravel-iam-contracts/issues",
-                "source": "https://github.com/padosoft/laravel-iam-contracts/tree/v1.3.0"
+                "source": "https://github.com/padosoft/laravel-iam-contracts/tree/v1.5.0"
             },
-            "time": "2026-08-24T06:23:34+00:00"
+            "time": "2026-08-25T16:38:43+00:00"
         },
         {
             "name": "padosoft/laravel-iam-directory",
