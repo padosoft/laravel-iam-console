@@ -81,11 +81,13 @@ screen talks **only** to the server's real Admin API (`/api/iam/v1`) — nothing
 | **Users** | List &amp; search users, open a user to see **effective permissions**, **create a user**, **suspend / reactivate**, and revoke all their sessions. |
 | **Roles &amp; Grants** | Assign a **permission or role** to a user with the policy wizard — **preview the impact** (who's affected, conflicts) then **commit** a `permit` / `deny` grant. |
 | **Sessions** | List active sessions and **revoke** them individually. |
-| **Audit log** | Browse audit events and **verify the tamper-evident hash-chain** on demand. |
+| **Audit log** | Browse audit events and **verify the tamper-evident hash-chain** on demand. On the `delegation` stream every event also names the **AI run it happened inside** — and, when one agent ran as another's tool, the run that delegated to it *and the tool call the hop came through*. Ordering by timestamp and hoping was the alternative: two agents exchanging in the same second are indistinguishable exactly when you most need to tell them apart. Needs [`laravel-iam-agents`](https://github.com/padosoft/laravel-iam-agents) ≥ 1.2 on `laravel/ai` ^0.11; older events render exactly as before. |
 | **Access reviews** | Create certification **campaigns**, open/close them, and **certify or revoke** each access item. |
 | **Recommendations** | **AI &amp; least-privilege** findings — unused grants, over-privileged subjects (advisory, draft-only). |
 | **Applications** | The registered applications and their manifests. |
 | **Decision playground** | Ask the PDP a **`check` / `explain`** and see the real ALLOW/DENY + the reasoning. |
+| **Agents** *(optional — appears when [`laravel-iam-agents`](https://github.com/padosoft/laravel-iam-agents) is installed)* | The agent identity registry for **delegated access** (OAuth Token Exchange, RFC 8693): review pending registrations and **approve them by pasting the agent's public JWKS** — the human gate that creates a `private_key_jwt`, token-exchange-only OAuth client. Suspend (deny everything, immediately) or retire. |
+| **Delegations** *(optional, same module)* | Every **user → agent delegation grant** org-wide: who delegated, to which agent, which scopes, under which consent (AAL), with the grant **budget** (amount / calls / tokens caps, iam-agents ≥ 1.1) and a warning badge counting **pending JIT elevation requests** — the admin sees an authority ask next to the kill-switch, while deciding stays with the delegating user in self-service. **Revoke is the central kill-switch** — the next exchange fails and delegated decisions deny at once. The Audit screen gains a `delegation` stream with every exchange (issued *and* refused). |
 
 > **Note on user creation.** The IAM Admin API intentionally does **not** create users (identities come from
 > your app's auth / OIDC / directory). The console owns user creation via a small app endpoint
@@ -290,7 +292,8 @@ for the CI/ship workflow (local-green → PR → Copilot → `testE2E` label →
 This app is the host; the rest of Laravel IAM plugs into or consumes it. Every package has its own docs site:
 
 - **Server & modules (Packagist):** [server](https://doc.laravel-iam-server.padosoft.com) ·
-  [client](https://doc.laravel-iam-client.padosoft.com) · [ai](https://doc.laravel-iam-ai.padosoft.com) ·
+  [client](https://doc.laravel-iam-client.padosoft.com) · [agents](https://doc.laravel-iam-agents.padosoft.com) ·
+  [ai](https://doc.laravel-iam-ai.padosoft.com) ·
   [directory](https://doc.laravel-iam-directory.padosoft.com) ·
   [bridge-spatie-permission](https://doc.laravel-iam-bridge-spatie-permission.padosoft.com) ·
   [contracts](https://doc.laravel-iam-contracts.padosoft.com)

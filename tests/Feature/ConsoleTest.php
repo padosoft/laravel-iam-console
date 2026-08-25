@@ -61,6 +61,12 @@ class ConsoleTest extends TestCase
         // Drift guard: every iam.can:iam:* the Admin API declares must be in the seeded catalog, else the
         // super-admin (who holds the role, not direct grants) silently loses that capability on a bump.
         $adminRoutes = (string) file_get_contents(base_path('vendor/padosoft/laravel-iam-server/routes/admin.php'));
+        // Optional modules contribute their own admin routes (re-registered in routes/web.php
+        // under the session stack) — their iam.can slugs are part of the same surface.
+        $agentsRoutes = base_path('vendor/padosoft/laravel-iam-agents/routes/admin.php');
+        if (is_file($agentsRoutes)) {
+            $adminRoutes .= (string) file_get_contents($agentsRoutes);
+        }
         preg_match_all('/iam\.can:(iam:[a-z_]+\.[a-z_]+)/', $adminRoutes, $matches);
         $declared = array_values(array_unique($matches[1]));
         sort($declared);
