@@ -4,6 +4,7 @@ import { useCursorList } from '../hooks/useApi'
 import { useCapabilities } from '../hooks/useCapabilities'
 import { useUserNames } from '../hooks/useUserNames'
 import { asText, formatDate, pick } from '../lib/format'
+import { hasRunChain, runChain, shortId } from '../lib/run-chain'
 import PageHeader from '../components/PageHeader'
 import { useToast } from '../components/toast-context'
 import { Badge, Button, Card, EmptyState, ErrorState, Input, KeyValues, Loading, Modal, Select, Table, Td, Th } from '../components/ui'
@@ -90,7 +91,20 @@ export default function AuditLog() {
         ) : list.items.length === 0 ? (
           <EmptyState title="No events in this stream" hint="Try another stream." />
         ) : (
-          <Table head={<><Th>Event</Th><Th>Actor</Th><Th>Target</Th><Th>When</Th><Th /></>}>
+          <Table
+            head={
+              <>
+                <Th>Event</Th>
+                <Th>Actor</Th>
+                <Th>Target</Th>
+                {/* The run only exists on the delegation stream; a permanently
+                    empty column on the other four would be worse than none. */}
+                {stream === 'delegation' && <Th>Run</Th>}
+                <Th>When</Th>
+                <Th />
+              </>
+            }
+          >
             {list.items.map((e, i) => {
               const id = String(pick(e, ['id', 'event_id']) ?? i)
               return (
@@ -110,6 +124,26 @@ export default function AuditLog() {
                       ? <span title={tid}>{p.name}</span>
                       : <span className="font-mono text-xs text-muted">{tid}</span>
                   })()}</Td>
+                  {stream === 'delegation' && (
+                    <Td>{(() => {
+                      const chain = runChain(e)
+                      if (chain.invocationId === null && chain.parentInvocationId === null) {
+                        return <span className="text-faint">—</span>
+                      }
+                      return (
+                        <div className="flex flex-col gap-0.5">
+                          <span className="font-mono text-xs" title={chain.invocationId ?? undefined}>
+                            {chain.invocationId ? shortId(chain.invocationId) : '—'}
+                          </span>
+                          {chain.parentInvocationId && (
+                            <span className="font-mono text-[11px] text-faint" title={chain.parentInvocationId}>
+                              ↳ called by {shortId(chain.parentInvocationId, 6)}
+                            </span>
+                          )}
+                        </div>
+                      )
+                    })()}</Td>
+                  )}
                   <Td className="text-muted">{formatDate(pick(e, ['occurred_at', 'created_at', 'timestamp', 'ts']))}</Td>
                   <Td className="text-right"><Button variant="ghost" onClick={() => setDetail(e)}>View</Button></Td>
                 </tr>
@@ -126,6 +160,37 @@ export default function AuditLog() {
 
       {detail && (
         <Modal open wide title="Audit event" onClose={() => setDetail(null)}>
+          {(() => {
+            const chain = runChain(detail)
+            if (!hasRunChain(chain)) return null
+            return (
+              <div className="mb-5 rounded-lg border border-line bg-surface-2/50 p-3">
+                <div className="mb-2 text-xs uppercase tracking-wide text-faint">Invocation chain</div>
+                {chain.parentInvocationId ? (
+                  <div className="space-y-1">
+                    <div className="font-mono text-sm text-ink/90">{chain.parentInvocationId}</div>
+                    <div className="pl-3 text-xs text-muted">
+                      ↳ delegated to the run below
+                      {chain.parentToolInvocationId && (
+                        <> through tool call <span className="font-mono">{chain.parentToolInvocationId}</span></>
+                      )}
+                    </div>
+                    <div className="pl-3 font-mono text-sm text-ink/90">{chain.invocationId ?? '—'}</div>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="font-mono text-sm text-ink/90">{chain.invocationId}</div>
+                    <div className="mt-1 text-xs text-muted">Root run — no agent delegated to this one.</div>
+                  </div>
+                )}
+                <p className="mt-2 text-xs text-muted">
+                  This is the same <span className="font-mono">invocation_id</span> the FinOps panel keys its
+                  Agent Runs page on, and the AI Act panel records on a tool approval — paste it there for the
+                  steps, spend and human decisions of this same run.
+                </p>
+              </div>
+            )
+          })()}
           <KeyValues data={detail} />
         </Modal>
       )}
