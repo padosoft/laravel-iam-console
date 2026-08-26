@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "50dd8417be485f19ca71a39794ccc974",
+    "content-hash": "dc04872707fed96e7c98764d53b3d719",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -3009,16 +3009,16 @@
         },
         {
             "name": "padosoft/laravel-iam-agents",
-            "version": "v1.2.0",
+            "version": "v1.3.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/padosoft/laravel-iam-agents.git",
-                "reference": "08eb2d54ef3b5f617846dc3957e0bf2fe3f2d78e"
+                "reference": "b33556b1eceb6adc6aeba598378de19e62deb5ac"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/padosoft/laravel-iam-agents/zipball/08eb2d54ef3b5f617846dc3957e0bf2fe3f2d78e",
-                "reference": "08eb2d54ef3b5f617846dc3957e0bf2fe3f2d78e",
+                "url": "https://api.github.com/repos/padosoft/laravel-iam-agents/zipball/b33556b1eceb6adc6aeba598378de19e62deb5ac",
+                "reference": "b33556b1eceb6adc6aeba598378de19e62deb5ac",
                 "shasum": ""
             },
             "require": {
@@ -3074,9 +3074,9 @@
             ],
             "support": {
                 "issues": "https://github.com/padosoft/laravel-iam-agents/issues",
-                "source": "https://github.com/padosoft/laravel-iam-agents/tree/v1.2.0"
+                "source": "https://github.com/padosoft/laravel-iam-agents/tree/v1.3.0"
             },
-            "time": "2026-08-25T16:38:49+00:00"
+            "time": "2026-08-26T00:15:37+00:00"
         },
         {
             "name": "padosoft/laravel-iam-ai",
