@@ -29,6 +29,9 @@ class IamRolesSeeder extends Seeder
     private const PERMISSIONS = [
         'access_request.review', 'access_request.use', 'access_review.manage', 'agents.manage', 'applications.read',
         'audit.read', 'clients.manage', 'decisions.check', 'decisions.explain', 'delegations.manage',
+        // Deliberately separate from delegations.manage: freezing the fleet is for
+        // whoever administers delegation, restarting it is for fewer people.
+        'delegations.unfreeze',
         'directory.manage', 'directory.read',
         'federated.manage', 'federated.read', 'grants.manage', 'groups.manage', 'groups.read',
         'least_privilege.view', 'manifests.apply', 'manifests.approve', 'manifests.read', 'manifests.submit',
