@@ -47,6 +47,7 @@ const NAV: NavItem[] = [
 const AGENTS_NAV: NavItem[] = [
   { to: '/agents', label: 'Agents', icon: <Icon path="M12 8V4m0 0H8m4 0h4M5 8h14a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Zm4 5h.01M15 13h.01M9 19v2m6-2v2" /> },
   { to: '/delegations', label: 'Delegations', icon: <Icon path="M7 7a3 3 0 1 0 0 .01M17 17a3 3 0 1 0 0 .01M9.5 9.5l5 5M14 5h5v5" /> },
+  { to: '/delegation-freezes', label: 'Kill switch', icon: <Icon path="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20M5 5l14 14" /> },
 ]
 
 function NavItemLink({ item, onNavigate }: { item: NavItem; onNavigate?: () => void }) {
