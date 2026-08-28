@@ -114,7 +114,7 @@ export default function Agents() {
     <>
       <PageHeader
         title="Agents"
-        description="First-class agent identities for delegated access (RFC 8693 token exchange). An agent never receives a user's token: it exchanges it for a short-lived delegated token carrying BOTH identities, bounded by the strict intersection of what the user and the agent may do."
+        description="First-class agent identities for delegated access (RFC 8693 token exchange). An agent never receives a user's token: it exchanges it for a short-lived delegated token carrying BOTH identities, bounded by the strict intersection of what the user and every agent in the chain may do."
         actions={
           <div className="flex items-center gap-2">
             <div className="w-44">

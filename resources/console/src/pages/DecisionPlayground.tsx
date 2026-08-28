@@ -16,6 +16,11 @@ interface Decision {
   required_aal?: string | null
   matched?: unknown[]
   explanation?: string[]
+  /** Delegated checks only: the act chain, current actor first. */
+  actors?: string[]
+  /** Delegated checks only: one decision id per layer, plus one per hop. */
+  sub_decisions?: { subject?: string | null; actor?: string | null; actors?: Record<string, string | null> }
+  reason?: string
   [k: string]: unknown
 }
 
@@ -26,6 +31,7 @@ export default function DecisionPlayground() {
     subjectId: '',
     permission: '',
     application: '',
+    actors: '',
   })
   const [result, setResult] = useState<Decision | null>(null)
   const [busy, setBusy] = useState<'check' | 'explain' | null>(null)
@@ -34,6 +40,11 @@ export default function DecisionPlayground() {
   const [question, setQuestion] = useState('')
 
   const ready = form.subjectId.trim() && form.permission.trim()
+
+  // Chain input is free text so an operator can paste what a token's `act` claim
+  // contained. Current actor first — the same order the nested claim uses.
+  const chain = form.actors.split(',').map((a) => a.trim()).filter(Boolean)
+  const delegated = chain.length > 0
 
   function body() {
     return {
@@ -47,7 +58,12 @@ export default function DecisionPlayground() {
     setBusy(mode)
     setResult(null)
     try {
-      const res = await apiPost<Decision>(`decisions/${mode}`, body())
+      // A chain turns this into the delegated question — "may this agent do it FOR
+      // that user" — which is a different decision, not the same one with extra data.
+      // `explain` has no delegated twin, so a chain always routes to check-delegated.
+      const res = delegated
+        ? await apiPost<Decision>('decisions/check-delegated', { ...body(), actors: chain })
+        : await apiPost<Decision>(`decisions/${mode}`, body())
       setResult(res ?? {})
     } catch (e) {
       toast.error(errorMessage(e))
@@ -97,13 +113,27 @@ export default function DecisionPlayground() {
               <ApplicationPicker value={form.application} onChange={(a) => setForm({ ...form, application: a })} ariaLabel="Decision application" />
             </Field>
 
+            <Field
+              label="Act chain"
+              hint="optional — agent:ID, comma-separated, CURRENT actor first. Any value here asks the delegated question instead."
+            >
+              <Input
+                value={form.actors}
+                onChange={(e) => setForm({ ...form, actors: e.target.value })}
+                placeholder="agent:agt_01B…, agent:agt_01A…"
+                aria-label="Delegation act chain"
+              />
+            </Field>
+
             <Field label="Question for AI" hint="optional — focus the AI explanation">
               <Input value={question} onChange={(e) => setQuestion(e.target.value)} placeholder="e.g. why is this denied?" />
             </Field>
 
             <div className="flex flex-wrap gap-2 pt-1">
-              <Button variant="secondary" loading={busy === 'check'} disabled={!ready} onClick={() => run('check')}>Check</Button>
-              <Button variant="secondary" loading={busy === 'explain'} disabled={!ready} onClick={() => run('explain')}>Explain</Button>
+              <Button variant="secondary" loading={busy === 'check'} disabled={!ready} onClick={() => run('check')}>
+                {delegated ? 'Check delegated' : 'Check'}
+              </Button>
+              <Button variant="secondary" loading={busy === 'explain'} disabled={!ready || delegated} onClick={() => run('explain')}>Explain</Button>
               <Button variant="primary" loading={aiBusy} disabled={!ready} onClick={aiExplain}>Explain with AI</Button>
             </div>
           </div>
@@ -123,6 +153,48 @@ export default function DecisionPlayground() {
               <EmptyState title="No decision yet" hint="Run a check or explain." />
             ) : (
               <div className="space-y-5">
+                {/* Delegated: the strict intersection means one denying hop denies the
+                    whole thing, so an operator's first question is always WHICH hop.
+                    Listing the chain without answering that would be decoration. */}
+                {Array.isArray(result.actors) && result.actors.length > 0 && (
+                  <div className="rounded-md border border-line bg-surface/60 p-3">
+                    <div className="mb-2 text-xs font-medium uppercase tracking-wide text-faint">
+                      Act chain · {result.actors.length} hop{result.actors.length > 1 ? 's' : ''}
+                    </div>
+                    <ol className="space-y-1.5">
+                      <li className="flex items-baseline gap-2 text-sm">
+                        <span className="w-16 shrink-0 text-xs text-faint">subject</span>
+                        <span className="font-mono text-xs text-ink/90">{form.subjectType}:{form.subjectId}</span>
+                        <span className="font-mono text-[11px] text-faint">
+                          {asText(result.sub_decisions?.subject ?? '')}
+                        </span>
+                      </li>
+                      {result.actors.map((actor, i) => (
+                        <li key={actor} className="flex items-baseline gap-2 text-sm">
+                          <span className="w-16 shrink-0 text-xs text-faint">
+                            {i === 0 ? 'current' : `hop ${i + 1}`}
+                          </span>
+                          <span className="font-mono text-xs text-ink/90">{actor}</span>
+                          <span className="font-mono text-[11px] text-faint">
+                            {asText(result.sub_decisions?.actors?.[actor] ?? '')}
+                          </span>
+                        </li>
+                      ))}
+                    </ol>
+                    <p className="mt-2.5 text-xs text-muted">
+                      Effective authority is the strict intersection of every row above. One denying
+                      layer denies the whole decision — replay any sub-decision id on its own to see why.
+                    </p>
+                  </div>
+                )}
+
+                {result.reason && (
+                  <div className="rounded-md border border-line bg-surface/60 p-3 text-sm">
+                    <span className="text-faint">refused: </span>
+                    <span className="font-mono text-xs text-ink/90">{asText(result.reason)}</span>
+                  </div>
+                )}
+
                 <div className="flex flex-wrap gap-4 text-sm">
                   {result.decision_id && (
                     <div><span className="text-faint">decision_id: </span><span className="font-mono text-ink/90">{result.decision_id}</span></div>

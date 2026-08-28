@@ -162,7 +162,7 @@ export default function Delegations() {
           </div>
         )}
         <div className="border-t border-line px-4 py-2 text-xs text-faint">
-          Effective authority is always the strict intersection: requested ∩ grant scopes ∩ agent max scopes — and the PDP re-checks BOTH the user and the agent on every delegated decision, fail-closed. Delegated tokens are short-lived and non-refreshable: the re-exchange IS the revocation freshness check.
+          Effective authority is always the strict intersection: requested ∩ grant scopes ∩ every hop's max scopes — and the PDP re-checks the user AND every actor in the chain on each delegated decision, fail-closed. With multi-hop enabled the root grant still governs: revoke it and the whole chain stops, not just the last link. Delegated tokens are short-lived and non-refreshable: the re-exchange IS the revocation freshness check.
         </div>
       </Card>
 
