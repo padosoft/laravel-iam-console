@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { apiGet, apiGetPage, apiPost, errorMessage, type Page } from '../lib/api'
+import { useCapabilities } from '../hooks/useCapabilities'
 import { useCursorList } from '../hooks/useApi'
 import { asText, cx, formatDate, pick } from '../lib/format'
 import PageHeader from '../components/PageHeader'
@@ -58,7 +59,7 @@ export default function AccessReviews() {
     <>
       <PageHeader
         title="Access reviews"
-        description="Certification campaigns: a reviewer confirms (certify) or removes (revoke) each standing grant, so you can prove every privilege is still justified."
+        description="Certification campaigns: a reviewer confirms (certify) or removes (revoke) each standing access — grants, and the delegations that let agents act for a user — so you can prove every privilege is still justified."
         actions={<Button variant="primary" onClick={() => setCreating(true)}>New campaign</Button>}
       />
 
@@ -280,19 +281,34 @@ function SubjectBlock({
 function ItemRow({ item, busy, onDecide }: { item: Row; busy: string | null; onDecide: (itemId: string, action: 'certify' | 'revoke') => void }) {
   const itemId = String(pick(item, ['id']) ?? '')
   const decision = asText(pick(item, ['decision']))
-  const isRole = asText(pick(item, ['privilege_type'])) === 'role'
+  const privilegeType = asText(pick(item, ['privilege_type']))
+  const isRole = privilegeType === 'role'
+  // A delegation grant is an access like any other, so it renders in the same row — but WHO acts
+  // is the agent, not the subject, and that has to be visible or the reviewer is certifying a
+  // scope list with no idea who holds it.
+  const isDelegation = asText(pick(item, ['reviewable_type'])) === 'delegation_grant' || privilegeType === 'delegation'
   const key = asText(pick(item, ['privilege_key']))
   const deny = asText(pick(item, ['effect'])) === 'deny'
   const signals = pick(item, ['signals']) as Record<string, unknown> | undefined
   const decided = decision !== 'pending' && decision !== '—'
 
+  const agent = asText(pick(item, ['agent_name', 'agent_id']))
+  const purpose = asText(pick(item, ['purpose']))
+
   return (
     <div className="flex flex-wrap items-center gap-2">
       <span className={cx('inline-flex items-center gap-1.5 rounded-md border px-2 py-1 font-mono text-xs', deny ? 'border-danger/30 bg-danger/10 text-danger' : 'border-line-strong bg-surface-2 text-ink/90')}>
         {isRole && <span className="rounded bg-accent-soft px-1 text-[10px] font-semibold uppercase text-accent-2">role</span>}
+        {isDelegation && <span className="rounded bg-warn/15 px-1 text-[10px] font-semibold uppercase text-warn">agent</span>}
         {key}
         {deny && <span className="text-[10px] uppercase">deny</span>}
       </span>
+      {isDelegation && agent !== '—' && (
+        <span className="text-xs text-muted">
+          via <span className="font-medium text-ink">{agent}</span>
+          {purpose !== '—' && <span className="text-faint"> · {purpose}</span>}
+        </span>
+      )}
       <SignalHints signals={signals} />
       <div className="ml-auto flex items-center gap-2">
         {decided ? (
@@ -315,6 +331,17 @@ function SignalHints({ signals }: { signals?: Record<string, unknown> }) {
   else if (signals.dormant === true) hints.push('dormant')
   if (signals.privileged === true) hints.push('privileged')
   if (signals.subject_disabled === true) hints.push('subject disabled')
+
+  // Delegation signals. `agent_suspended` first: a suspended agent still holds live delegations,
+  // and lifting the suspension brings them all back without anyone re-confirming — it is the case
+  // a reviewer should close before any other.
+  if (signals.agent_suspended === true) hints.push('agent suspended')
+  const expiresIn = signals.expires_in_days
+  if (typeof expiresIn === 'number' && expiresIn <= 7) {
+    hints.push(expiresIn <= 0 ? 'expired' : `expires in ${expiresIn}d`)
+  }
+  if (signals.consent_aal === 'aal1') hints.push('consent at aal1')
+
   if (hints.length === 0) return null
   return (
     <span className="flex flex-wrap gap-1">
@@ -326,16 +353,32 @@ function SignalHints({ signals }: { signals?: Record<string, unknown> }) {
 /* ── Create campaign (with a light scope) ─────────────────────────────── */
 function CreateCampaign({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
   const toast = useToast()
+  const caps = useCapabilities()
   const [name, setName] = useState('')
   const [onlyPrivileged, setOnlyPrivileged] = useState(false)
+  const [reviewGrants, setReviewGrants] = useState(true)
+  const [reviewDelegations, setReviewDelegations] = useState(false)
   const [busy, setBusy] = useState(false)
+
+  // The delegations source only exists when the agents module is installed AND registered itself
+  // with the server's reviewable registry. Older servers report neither: the checkbox just hides.
+  const canReviewDelegations =
+    caps?.modules?.agents === true && caps?.features?.agents?.access_review_source === true
 
   async function submit() {
     setBusy(true)
     try {
-      const scope = onlyPrivileged ? { scope_json: { only_privileged: true } } : {}
+      const scopeJson: Record<string, unknown> = {}
+      if (onlyPrivileged) scopeJson.only_privileged = true
+      // Only send reviewable_types when it actually differs from the server default (grants only):
+      // an absent key means "behave as this campaign always has", and we should not overwrite that
+      // with an explicit list that says the same thing.
+      if (canReviewDelegations && reviewDelegations) {
+        scopeJson.reviewable_types = reviewGrants ? ['grant', 'delegation_grant'] : ['delegation_grant']
+      }
+      const scope = Object.keys(scopeJson).length > 0 ? { scope_json: scopeJson } : {}
       await apiPost('access-reviews/campaigns', { name, ...scope })
-      toast.success('Campaign created — open it to pull in the grants.')
+      toast.success('Campaign created — open it to pull in the accesses.')
       onCreated()
       onClose()
     } catch (e) {
@@ -345,22 +388,44 @@ function CreateCampaign({ onClose, onCreated }: { onClose: () => void; onCreated
     }
   }
 
+  const nothingSelected = canReviewDelegations && !reviewGrants && !reviewDelegations
+
   return (
     <Modal
       open
       title="New campaign"
       onClose={onClose}
-      footer={<><Button variant="ghost" onClick={onClose}>Cancel</Button><Button variant="primary" loading={busy} disabled={!name.trim()} onClick={submit}>Create</Button></>}
+      footer={<><Button variant="ghost" onClick={onClose}>Cancel</Button><Button variant="primary" loading={busy} disabled={!name.trim() || nothingSelected} onClick={submit}>Create</Button></>}
     >
       <div className="space-y-4">
         <Field label="Campaign name">
           <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Q3 access certification" />
         </Field>
+
+        {canReviewDelegations && (
+          <Field label="What to certify">
+            <div className="space-y-1.5">
+              <label className="flex items-center gap-2 text-sm text-ink">
+                <input type="checkbox" checked={reviewGrants} onChange={(e) => setReviewGrants(e.target.checked)} />
+                Grants — roles and permissions held by people and services
+              </label>
+              <label className="flex items-center gap-2 text-sm text-ink">
+                <input type="checkbox" checked={reviewDelegations} onChange={(e) => setReviewDelegations(e.target.checked)} />
+                Delegations — agents allowed to act on behalf of a user
+              </label>
+            </div>
+            <p className="mt-1.5 text-xs text-faint">
+              Delegations are off by default: nobody leaves the company on an agent's behalf, so they
+              are easy to forget — but adding them to a campaign should be a choice, not a surprise.
+            </p>
+          </Field>
+        )}
+
         <label className="flex items-center gap-2 text-sm text-ink">
           <input type="checkbox" checked={onlyPrivileged} onChange={(e) => setOnlyPrivileged(e.target.checked)} />
           Only privileged grants
         </label>
-        <p className="text-xs text-faint">An empty scope reviews every active grant. Open the campaign after creating it to materialize the items.</p>
+        <p className="text-xs text-faint">An empty scope reviews every active access. Open the campaign after creating it to materialize the items.</p>
       </div>
     </Modal>
   )
